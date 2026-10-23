@@ -1,6 +1,6 @@
 # Local lesson guide
 
-Run `python app.py`; open **http://127.0.0.1:8000**. Use the Arabic UI selectors (English mode labels included). Reset between comparisons. All data is synthetic and disappears on restart.
+Run `python app.py`; open **http://127.0.0.1:8000**. Open a lesson card, read the scenario, then choose the second tab and press the comparison button. It resets state and makes bounded real local HTTP requests for both modes, with interpreted results and expandable raw evidence. The third tab explains the fix and its limits. For the manual steps below, expand the manual experiment section in the comparison tab. Reset between comparisons. All data is synthetic and disappears on restart.
 
 ## Account enumeration
 
