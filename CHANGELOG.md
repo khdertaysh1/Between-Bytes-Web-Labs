@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-23
+
+- Four new lessons: server-side IDOR, reflected XSS, DOM XSS, and synthetic edge/origin authorization.
+- Hands-on workbenches for all seven lessons with editable inputs, evidence checklists, progressive hints and JSON downloads.
+- Progress requires manual challenge evidence; automatic demonstrations do not complete challenges.
+- Opaque-origin sandboxed XSS previews, HTML text-context fix, and DOM textContent fix.
+- 19 passing Python tests and passing Chromium checks for all seven manual challenges, XSS execution/isolation, progress gating and mobile layouts.
+
+
 ## 0.2.0 — 2026-10-23
 
 - Redesigned Arabic learning dashboard and responsive lesson pages.

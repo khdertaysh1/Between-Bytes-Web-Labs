@@ -53,17 +53,18 @@ const lessons = {
     takeaway:'نفس طلبات الاستعادة أنشأت 4 رسائل وهمية في النسخة الضعيفة ورسالة واحدة في المُصلحة. حالة HTTP بقيت 202 في الحالتين؛ الأثر يظهر في عدد الرسائل.'
   }
 };
+Object.assign(lessons, extraLessons);
 let current = 'enumeration';
 let busy = false;
 let completed;
-try { completed = new Set(JSON.parse(localStorage.getItem('bb-completed') || '[]').filter(id => lessons[id])); }
+try { completed = new Set(JSON.parse(localStorage.getItem('bb-challenges-v3') || '[]').filter(id => lessons[id])); }
 catch (_) { completed = new Set(); }
 function saveProgress() {
-  try { localStorage.setItem('bb-completed', JSON.stringify([...completed])); } catch (_) {}
-  $('progress').textContent = `${completed.size} / 3`;
-  $('progress-bar').style.width = `${completed.size / 3 * 100}%`;
+  try { localStorage.setItem('bb-challenges-v3', JSON.stringify([...completed])); } catch (_) {}
+  $('progress').textContent = `${completed.size} / ${Object.keys(lessons).length}`;
+  $('progress-bar').style.width = `${completed.size / Object.keys(lessons).length * 100}%`;
   for (const element of document.querySelectorAll('[data-completion]')) {
-    element.textContent = completed.has(element.dataset.completion) ? 'تمّت المقارنة ✓' : 'افتح المختبر ←';
+    element.textContent = completed.has(element.dataset.completion) ? 'حُلّ التحدي ✓' : 'افتح المختبر ←';
   }
 }
 // All inserted markup below is authored lesson content; HTTP/user data uses textContent.
@@ -100,6 +101,8 @@ function route() {
   const ids = Object.keys(lessons); const next = ids[ids.indexOf(id)+1];
   $('next-lesson').href = next ? '#'+next : '#home';
   $('next-lesson').textContent = next ? 'المختبر التالي ←' : 'ارجع لمسارك التعليمي ←';
+  $('guided-demo').hidden = !!extraLessons[id];
+  if (typeof setupChallenge === 'function') setupChallenge(id);
   tab('learn');
   window.scrollTo(0,0);
 }
@@ -160,7 +163,7 @@ $('compare').onclick = async () => {
     const body=document.createElement('p');body.textContent=expected?lessons[current].takeaway:'راجع تفاصيل الاستجابات. قد يكون هناك تداخل مع طلبات أخرى أو نسخة مختلفة من الخادم. لم تُسجّل التجربة كمكتملة.';
     $('takeaway').append(title,body);$('takeaway').hidden=false;
     $('live-status').textContent=expected?'اكتملت المقارنة من استجابات الخادم الفعلية.':'المقارنة تحتاج مراجعة.';
-    if(expected){completed.add(current);saveProgress();}
+    // Guided viewing does not complete a hands-on challenge.
     $('outbox').textContent=JSON.stringify(await inbox(),null,2);
   } catch(error) {
     $('live-status').textContent=`تعذّر إكمال التجربة. تأكد أن python app.py يعمل، ثم أعد المحاولة. (${error.message})`;

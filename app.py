@@ -5,7 +5,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from pathlib import Path
 import time
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
+from training import access_lesson, preview_document, PREVIEW_CSP
 
 GENERIC = {"message": "If the account exists, a reset message will be queued."}
 USERS = {"alice@example.test", "bob@example.test"}
@@ -81,14 +82,14 @@ def handler_for(labs):
         def log_message(self, *args):
             pass
 
-        def reply(self, status, data, mime="application/json; charset=utf-8"):
+        def reply(self, status, data, mime="application/json; charset=utf-8", csp=None):
             body = data if isinstance(data, bytes) else json.dumps(data).encode()
             self.send_response(status)
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; form-action 'self'")
+            self.send_header("Content-Security-Policy", csp or "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; form-action 'self'")
             self.end_headers()
             self.wfile.write(body)
 
@@ -99,7 +100,20 @@ def handler_for(labs):
         def do_GET(self):
             if not self.valid_host():
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
-            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8")}
+            parsed = urlsplit(self.path)
+            if parsed.path.startswith("/preview/"):
+                try:
+                    parts = parsed.path.strip("/").split("/")
+                    if len(parts) != 3:
+                        raise ValueError("Invalid route")
+                    query = parse_qs(parsed.query, max_num_fields=4)
+                    if parts[1] == "dom-xss" and "q" in query:
+                        raise ValueError("DOM payload must stay in browser")
+                    document = preview_document(parts[1], parts[2], query.get("q", [""])[0], query.get("token", [""])[0])
+                    return self.reply(200, document.encode(), "text/html; charset=utf-8", PREVIEW_CSP)
+                except ValueError:
+                    return self.reply(400, {"error": "Invalid preview"})
+            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
             if self.path in files:
                 name, mime = files[self.path]
                 return self.reply(200, Path(__file__).with_name(name).read_bytes(), mime)
@@ -131,6 +145,9 @@ def handler_for(labs):
             parts = self.path.strip("/").split("/")
             if len(parts) != 3 or parts[0] != "lab":
                 return self.reply(404, {"error": "Not found"})
+            if parts[1] in {"idor", "edge403"}:
+                status, result = access_lesson(parts[1], parts[2], form)
+                return self.reply(status, result)
             status, result = labs.run(parts[1], parts[2], form.get("email", [""])[0], self.client_address[0], self.headers.get("X-Forwarded-For", ""))
             return self.reply(status, result)
     return Handler

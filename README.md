@@ -2,13 +2,17 @@
 
 مختبرات عربية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
 
-**الإصدار 0.2:** ثلاثة مختبرات مستقلة، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
+**الإصدار 0.3:** سبعة مختبرات مستقلة، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
 
 | المختبر | الخطأ المتعمّد | ما يوضحه الإصلاح |
 |---|---|---|
 | User Enumeration | اختلاف حالة HTTP والرسالة حسب وجود الحساب | توحيد الاستجابة العامة |
 | Rate Limit | الوثوق بـ X-Forwarded-For المرسل من العميل | حدود للحساب الموحّد ولمصدر الاتصال |
 | Reset Email Abuse | إنشاء رسالة لكل طلب استعادة | مهلة للحساب وحد للمصدر مع استجابة عامة |
+| IDOR | قراءة فاتورة بمعرّفها دون فحص ملكيتها | تحقق صلاحيات المورد على الخادم |
+| Reflected XSS | انعكاس مدخل البحث كـHTML | ترميز سياق نص HTML |
+| DOM XSS | رسالة غير موثوقة إلى innerHTML | العرض باستخدام textContent |
+| Edge / Origin 403 | منع عند الوكيل دون تحقق الأصل | رفض الزائر المجهول عند الطبقتين — محاكاة محلية |
 
 ## التشغيل على Termux
 
@@ -29,16 +33,16 @@ python app.py
 ## أول تجربة خلال دقيقة
 
 1. افتح بطاقة **كشف وجود الحساب** واقرأ السيناريو والخطوات.
-2. انتقل إلى **جرّب وقارن** واضغط **شغّل المقارنة**.
-3. شاهد الاستجابات الفعلية للنسختين وشرح ما أثبتته التجربة.
-4. افتح **افهم الإصلاح** لمراجعة سبب المشكلة، فكرة الكود، وحدود الحل.
-5. افتح **تجربة يدوية** إذا أردت تغيير المدخلات بنفسك.
+2. انتقل إلى **جرّب وقارن** واضغط **ابدأ / صفّر التحدي**.
+3. عدّل المدخلات بنفسك، وأرسل الطلبات المطلوبة. قائمة المهمة تتقدم حسب الأدلة.
+4. استخدم التلميحات المتدرجة إذا احتجت، وافتح دفتر الدليل لقراءة الطلبات والاستجابات أو تنزيلها JSON.
+5. انتقل إلى **افهم الإصلاح** وراجع السبب والكود وحدود الحل.
 
-المقارنة تبدأ بتصفير حالة المختبرات وترسل طلبات محلية محدودة. اكتمال التجربة يُسجّل على جهازك فقط بعد تحقق النتيجة المتوقعة، ويمكن مسح التقدّم من القائمة. لا يعد التقدّم شهادة أو تأكيداً على أمان منتج حقيقي.
+[دليل التحديات السبعة بالعربية](docs/challenges.ar.md) · [English hands-on guide](docs/challenges.en.md)
 
-تابع [دليل المختبرات بالعربية](docs/lessons.ar.md) للتفاصيل.
+المقارنة التلقائية القديمة ما زالت متاحة للدروس الثلاثة الأولى، لكنها لا تحتسب حل التحدي. التقدّم التعليمي محفوظ على جهازك، ويمكن مسحه من القائمة؛ ليس شهادة أو إثبات أمان لموقع آخر. بدء جولة يمسح عدّادات جميع المختبرات والبريد الوهمي، والجولة تسمح حتى 60 تجربة يدوية.
 
-الحسابات الوهمية الموجودة: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح كل البيانات.
+الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح كل البيانات.
 
 ## الاختبارات
 
@@ -46,7 +50,13 @@ python app.py
 python -m unittest discover -s tests -v
 ```
 
-تختبر سلوك النسختين، انقضاء المهلة بساعة وهمية، حدود الحساب والمصدر، وصندوق البريد ومسارات HTTP محلياً. لا تحتاج اتصالاً بالإنترنت.
+تختبر سلوك النسختين وملكية الفواتير ومسارات 403 وعزل المعاينات وترميز الانعكاس، بالإضافة إلى انقضاء المهلة بساعة وهمية، حدود الحساب والمصدر، وصندوق البريد ومسارات HTTP محلياً. لا تحتاج اتصالاً بالإنترنت.
+
+## مختبرات XSS و403
+
+XSS يعمل داخل إطار sandbox منفصل عن أصل المنصة، مع رصد إشارة تنفيذ تعليمية. **DOM input لا يُرسل للخادم**، بينما مدخل Reflected يُعكس عبر استجابة الخادم المحلي. راجع الدليل لحدود CSP ونافذة رصد التنفيذ؛ هذه ليست عزلة نظام تشغيل.
+
+درس 403 يحاكي خطأ صلاحيات بين edge وorigin داخل التطبيق نفسه. لا يتصل بـCloudflare ولا ينفذ تجاوزاً حقيقياً لحمايته.
 
 ## حدود المختبر
 
@@ -56,6 +66,6 @@ python -m unittest discover -s tests -v
 
 ## English
 
-Three local, intentionally vulnerable web lessons with paired fixes: account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then compare `vulnerable` and `fixed` modes. All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
+Seven local, intentionally vulnerable web lessons with paired fixes: IDOR, reflected XSS, DOM XSS, an edge/origin 403 simulation, account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then solve the manual challenges using editable inputs, evidence and progressive hints. See [hands-on guide](docs/challenges.en.md). All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
 
 Created for the Between Bytes community by [khdertaysh1](https://github.com/khdertaysh1).
