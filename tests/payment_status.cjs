@@ -2,7 +2,7 @@
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
 (async()=>{
  const b=await chromium.launch({headless:true,executablePath:process.env.BB_BROWSER_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:8000';
- await p.goto(base);await p.waitForFunction(()=>document.querySelectorAll('.lab-card').length===5);await p.locator('#language').click();
+ await p.goto(base);await p.waitForFunction(()=>document.querySelectorAll('.lab-card').length===9);await p.locator('#language').click();
  const cases=await p.evaluate(async()=>(await (await fetch('/academy/catalog')).json()).cases.filter(c=>c.group==='payment'));
  const expected={'price':422,'quantity':422,'discount':422,'coupon-reuse':409,'currency':409,'rounding':422,'total':422,'shipping':422,'tax':422,'status':409,'webhook':401,'binding':409,'replay':200,'gift':409,'refund':409,'trial':409};
  async function run(mode,input){await p.locator('#mode').selectOption(mode);await p.locator('#input').fill(JSON.stringify(input));await p.locator('#send').click();await p.waitForFunction(()=>!document.getElementById('send').disabled);assert.equal(await p.locator('#error').innerText(),'');return Number((await p.locator('#http-status').innerText()).split(' ')[0]);}

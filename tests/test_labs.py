@@ -88,7 +88,7 @@ class HTTPIntegration(unittest.TestCase):
         return result
 
     def test_ui_and_assets_served(self):
-        for path in ("/", "/ui.js", "/style.css", "/outbox"):
+        for path in ("/", "/academy.js", "/academy.css", "/outbox"):
             status, headers, body = self.request(path)
             self.assertEqual(status, 200)
             self.assertTrue(body)

@@ -49,6 +49,14 @@ def response(academy,case,mode,result):
     elif case.startswith('xss-'):
         if case=='xss-stored':status=201
         payload={'data':{'preview_url':result['preview'],'source':result['source'],'stored':case=='xss-stored'}}
+    elif case.startswith('csrf-'):
+        if status>=400:
+            code,message=('method_not_allowed','Use POST to change account data.') if status==405 else ('unsupported_content_type','Use the supported form content type.') if status==415 else ('csrf_verification_failed','The request origin or session-bound token could not be verified.')
+            if status==405:headers['Allow']='POST'
+            payload={'error':{'code':code,'message':message},'data':deepcopy(result['data'])}
+        else:payload={'data':deepcopy(result['data'])}
+    elif case.startswith('cors-') and status==401:
+        payload={'error':{'code':'session_required','message':'A valid session is required.'},'data':deepcopy(result['data'])}
     else:
         if status>=400:
             code,message=('invalid_credentials','Invalid email or password.') if status==401 else ('invalid_request_type','Password must be a string.') if case=='code-nosql' else ('invalid_query','The search query could not be processed.') if case=='code-sqli' else ('destination_not_allowed','The requested operation is not permitted.')

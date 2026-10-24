@@ -143,13 +143,13 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             try:parsed=urlsplit(self.path)
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
-            get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
+            get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
             if get_api:
                 group,case,mode=get_api.groups()
                 if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.9.2','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.10.0','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
@@ -216,7 +216,9 @@ def handler_for(labs):
                     return self.reply(200, document.encode(), "text/html; charset=utf-8", PREVIEW_CSP)
                 except ValueError:
                     return self.reply(400, {"error": "Invalid preview"})
-            files = {"/": ("academy.html", "text/html; charset=utf-8"), "/foundations": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/rooms_ui.js": ("rooms_ui.js", "text/javascript; charset=utf-8"), "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"), "/english.js": ("english.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
+            if parsed.path == '/foundations':
+                return self.reply(308,b'',"text/plain",headers={'Location':'/academy'})
+            files = {"/": ("academy.html", "text/html; charset=utf-8")}
             files.update({'/academy':('academy.html','text/html; charset=utf-8'), '/academy.js':('academy.js','text/javascript; charset=utf-8'), '/academy.css':('academy.css','text/css; charset=utf-8')})
             if self.path in files:
                 name, mime = files[self.path]
@@ -242,7 +244,7 @@ def handler_for(labs):
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
             if request_path in {'/academy/catalog','/academy/evidence','/academy/resource'} or request_path.startswith('/academy/preview/'):
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use GET for this resource'}},headers={'Allow':'GET'})
-            api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
+            api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if not 0 < size <= 4096:

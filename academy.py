@@ -1,6 +1,7 @@
-"""Fifty bounded local scenarios; no external payment, mail or network transport."""
+"""Bounded local scenarios; no external payment, mail or network transport."""
 from collections import defaultdict, deque
 from commerce import execute as checkout_execute, provider_signature
+from request_security import execute as request_execute, GROUPS as REQUEST_GROUPS
 import html
 import hashlib
 import ipaddress
@@ -72,11 +73,15 @@ class Academy:
         allowed = set(CASES[case]['normal']) | set(CASES[case]['attack'])
         if set(data) - allowed:
             raise ValueError('Unsupported fields: ' + ', '.join(sorted(set(data) - allowed)))
-        if set(CASES[case]['normal'])-set(data):
-            raise ValueError('Missing required fields: '+', '.join(sorted(set(CASES[case]['normal'])-set(data))))
+        required=set(CASES[case]['normal'])
+        if case=='csrf-missing':required.discard('token')
+        if required-set(data):
+            raise ValueError('Missing required fields: '+', '.join(sorted(required-set(data))))
         state = self.states.setdefault((case, mode), {})
         fixed = mode == 'fixed'
-        if case.startswith('pay-'):
+        if CASES[case]['group'] in REQUEST_GROUPS:
+            result = request_execute(case, CASES[case]['group'], fixed, data, state)
+        elif case.startswith('pay-'):
             result = self.payment(case[4:], fixed, data, state)
         elif case.startswith('acl-'):
             result = self.access(case[4:], fixed, data, state)

@@ -27,7 +27,7 @@
         "en": "The Web Security Course catalog price is $100. The browser sends price=10000 in cents while updating the quote. You are not changing the catalog; you are testing whether the server mistakes a browser value for an authoritative price."
       },
       "interpretation": {
-        "ar": "قارن items[0].unit_amount وtotals.amount_due مع سعر الكتالوج. وصول الإجمالي إلى 1 سنت يثبت تلاعباً بعرض السعر؛ لا يثبت تحصيلاً ناجحاً أو شراءً مجانياً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "اقرأ المبلغ المستحق في الطلب المحفوظ بعد كل إرسال. تغيير price إلى 1 في النسخة الضعيفة يخفض السعر إلى سنت واحد. هذه حالة تلاعب بالتسعير؛ لم تحدث دفعة حقيقية ولم يُمنح تحميل لمجرد تغيير السعر.",
         "en": "Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "unit_price = body[\"price\"]",
@@ -62,7 +62,7 @@
         "en": "The cart permits one to ten course seats. Submit quantity=-1 directly to the quote endpoint. A browser constraint may stop the UI, but only the server contract defines a valid quantity."
       },
       "interpretation": {
-        "ar": "الإجمالي السالب خطأ حسابي قابل للانتقال لمراحل لاحقة. النسخة المُصلحة ترجع 422 وتبقي الطلب السابق دون تغيير. أعد quantity=2: يجب أن يُسعّر مقعدان بسعر 200 دولار.",
+        "ar": "راقب كمية المنتج والإجمالي في الطلب المحفوظ. يجب أن ترفض النسخة المُصلحة الكمية السالبة برمز 422 وأن تبقي الطلب كما كان. منع القيمة في واجهة السلة وحدها لا يحمي واجهة الخادم.",
         "en": "A negative total is an invalid accounting state that could reach later stages. The fixed endpoint returns 422 without mutating the prior order. Try quantity=2: two seats must cost $200."
       },
       "bad_code": "total = unit_price * body[\"quantity\"]",
@@ -97,7 +97,7 @@
         "en": "The cart supports campaign discounts. The UI displays a percentage but cannot authorize it. Posting discount=100 tests whether the pricing service takes discount policy from the client."
       },
       "interpretation": {
-        "ar": "تابع totals.discount والإجمالي المستحق. إجمالي صفر في هذه الحالة خطأ تسعير؛ لا توجد دفعة مزود ولا إنشاء استحقاق تحميل من تغيير السعر وحده. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "قارن الإجمالي قبل إرسال discount=100 وبعده. النسخة الضعيفة تقبل الخصم وتخفض المبلغ، أما المُصلحة فتعيد 422 دون تعديل الطلب. نسبة الخصم المعروضة في المتصفح ليست صلاحية لمنح الخصم.",
         "en": "Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "discount = body[\"discount\"]",
@@ -134,7 +134,7 @@
         "en": "WELCOME grants a $20 discount once per customer. Redeem it repeatedly within one round. The bounded repeat field schedules multiple local operations so you can inspect repeated-request effects."
       },
       "interpretation": {
-        "ar": "كل استهلاك مقبول يظهر كمعاملة coupon_redeemed. الضعيفة تسمح بتكرار الخصم. المُصلحة تعيد 409 إذا كانت كل العمليات مرفوضة، و207 إذا نجحت الأولى ورُفضت الثانية، مع حالة كل عملية في operations. لا يتجاوز الاستهلاك مرة واحدة. ابدأ بطلب سليم واحد قبل تجربة إعادة الاستخدام.",
+        "ar": "افحص عدد مرات استخدام القسيمة ونتيجة كل عملية داخل operations. استخدم جولة جديدة للمقارنة: في الدفعة المكونة من عمليتين تقبل المُصلحة الأولى وترفض الثانية. قد ترجع 207 لنجاح جزئي؛ لا تعد العمليتين ناجحتين.",
         "en": "Each accepted redemption creates a coupon_redeemed transaction. The vulnerable path repeats the discount. The fix returns 409 when every operation is rejected and 207 when one succeeds and another is rejected, with per-operation statuses in operations. Redemption never exceeds one. Start with one valid redemption before testing reuse."
       },
       "bad_code": "apply_discount(code)  # no redemption record",
@@ -169,7 +169,7 @@
         "en": "The order is USD 100.00. Processor settlement contains both amount and currency, not just a number. This case tests a numeric amount comparison that omits currency when JPY is supplied."
       },
       "interpretation": {
-        "ar": "في الضعيفة افحص معاملة fulfilment_released وعملة المعالج داخل تفاصيلها. لا تقارن وحدات JPY بوحدات USD. في المُصلحة يجب أن تحصل على 409 currency_mismatch ولا يزداد revision.",
+        "ar": "اقرأ عملة الطلب وعملة الدفعة مع المبلغ، لا الرقم وحده. المثال المخالف يغيّر USD إلى JPY. النسخة المُصلحة ترفض عدم التطابق برمز 409 ولا تسوّي الطلب بناءً على تشابه الرقم.",
         "en": "In the vulnerable variant inspect fulfilment_released and its provider currency. Do not equate JPY units with USD units. The fix must return 409 currency_mismatch without advancing revision."
       },
       "bad_code": "if payment.amount == order.amount: fulfil()",
@@ -204,7 +204,7 @@
         "en": "A legacy interface accepts amount as a decimal string while accounting uses cents. Truncating 0.004 to integer minor units produces zero."
       },
       "interpretation": {
-        "ar": "الاختبار يقارن amount_due مع سعر الكتالوج 10000. استخدم كذلك 99.999 لفهم الاقتطاع. الحل ليس إضافة round عشوائياً؛ يجب منع العميل من تحديد سعر المنتج وربط كل واجهة بوحدة نقدية معلنة. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "قارن النص amount بالمبلغ المحسوب بأصغر وحدة نقدية. في الضعيفة تُقتطع القيمة الصغيرة إلى صفر. المُصلحة ترفض المبلغ غير المطابق بـ422، ولا يعتبر التقريب إذناً بتسوية مبلغ أقل.",
         "en": "Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "amount_minor = int(Decimal(body[\"amount\"]) * 100)",
@@ -239,7 +239,7 @@
         "en": "The browser adds cart lines and displays total before confirmation. This number is presentation data. The server must compute line prices, quantities and trusted fees rather than persist the posted sum."
       },
       "interpretation": {
-        "ar": "غير total إلى صفر ثم اقرأ الطلب من جديد. تغيّر totals.amount_due مع بقاء بند الدورة بقيمة 10000 يثبت عدم اتساق داخل نفس الطلب. لا تعتبر اختلاف واجهة العرض وحده دليلاً كافياً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "اقرأ إجمالي الطلب من الخادم بعد إرسال total=0. في الضعيفة يحل الرقم القادم من المتصفح محل الإجمالي المحسوب. في المُصلحة يُرفض بـ422 وتبقى البنود والإجمالي دون تغيير.",
         "en": "Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "order.total = body[\"total\"]",
@@ -274,7 +274,7 @@
         "en": "This cart has a fixed $10 delivery charge. Shipping should come from pricing policy and the selected delivery method, not a hidden form field. Test removal with shipping=0."
       },
       "interpretation": {
-        "ar": "الدليل هو إجمالي 100 دولار بدل 110 مع بقاء خدمة التوصيل نفسها. المُصلحة ترفض الرسم المخالف. لا تطبق هذه القاعدة بشكل أعمى على منتجات رقمية أو عروض شحن مجاني. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "ابدأ بقراءة رسوم الشحن من الطلب، ثم أرسل shipping=0. يجب أن ترى حذف الرسم في الضعيفة ورفضاً بـ422 في المُصلحة مع بقاء الرسوم. نجاح قراءة المورد بـ200 لا يعني قبول تغيير الرسوم.",
         "en": "Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix rejects the mismatched fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "shipping = body[\"shipping\"]",
@@ -309,7 +309,7 @@
         "en": "This exercise uses a fixed $10 tax to keep the policy inspectable. A client may submit a displayed value but cannot decide whether the transaction is exempt. Test tax=0 against the same order."
       },
       "interpretation": {
-        "ar": "افحص totals.tax والإجمالي. التطبيق الحقيقي يحتاج حساب ضريبة حسب الولاية والمنتج والإعفاءات الموثقة؛ هذه الحالة لا تنفذ نظام ضرائب قانونياً كاملاً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "ar": "قارن بند الضريبة والمبلغ المستحق قبل الطلب وبعده. إرسال tax=0 يلغي الضريبة في الضعيفة، وتعيد المُصلحة 422 وتحفظ القيمة الصحيحة. الحسابات مبسطة داخل هذا التمرين ولا تمثل نظام ضرائب فعلياً.",
         "en": "Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "tax = body[\"tax\"]",
@@ -346,7 +346,7 @@
         "en": "After returning from checkout, the browser posts a visible paid status and receipt reference. In a fresh round pending-order100 is still pending in the local provider ledger. The flaw promotes the order based on browser state."
       },
       "interpretation": {
-        "ar": "ابدأ بالمثال غير المسدد ثم اقرأ الطلب: الضعيفة قد تعطي status=paid واستحقاق تحميل رغم captured_amount=0. المُصلحة ترجع 409. بعدها اختبر الإيصال المسدد: الطلب يدفع فعلياً داخل النموذج ويمنح استحقاقاً واحداً.",
+        "ar": "ابدأ جولة جديدة ثم أرسل الإيصال المعلق مع status=paid. افحص حالة الطلب وسجل المعاملات واستحقاق التحميل. الضعيفة تمنح حالة الدفع بناءً على النص؛ المُصلحة ترفض بـ409 لأن سجل المزود لا يثبت التسوية.",
         "en": "Start with the unsettled example, then read the order: the vulnerable version can show paid and one download while captured_amount=0. The fix returns 409. Then use the settled receipt: the model records capture and grants one entitlement."
       },
       "bad_code": "if body[\"status\"] == \"paid\": release_download()",
@@ -383,7 +383,7 @@
         "en": "The payment service receives a settled event from a local provider fixture. The new implementation actually checks HMAC-SHA256 over a server-defined canonical event. The control includes a valid signature for that event only; invalid represents an untrusted notification."
       },
       "interpretation": {
-        "ar": "في الضعيفة قد ينشأ استحقاق مع صفر مبلغ محصل. في المُصلحة التوقيع الخاطئ يعطي 401 ولا يغير السجل. هذا عقد مختبر ثابت وليس بروتوكول Stripe أو Adyen؛ في الإنتاج يُتحقق من الجسم الخام والطابع الزمني وإعادة الإرسال وفق عقد المزود.",
+        "ar": "قارن التوقيع السليم بالتوقيع invalid، ثم اقرأ حالة الطلب والمعاملات. المُصلحة تعيد 401 للتوقيع غير الصحيح دون منح استحقاق. وجود event=settled في الجسم لا يجعل المرسل مزود دفع موثوقاً.",
         "en": "The vulnerable route can grant an entitlement with zero captured funds. The fix returns 401 for a bad signature without changing the ledger. This is a fixed lab contract, not Stripe or Adyen: production verification must follow the provider’s raw-body, timestamp and replay contract."
       },
       "bad_code": "if event == \"settled\": fulfil(order)",
@@ -418,7 +418,7 @@
         "en": "You have order100 worth $100 and a genuine settled-order1 receipt for a different $1 order. A successful receipt is insufficient unless it belongs to the current order."
       },
       "interpretation": {
-        "ar": "من جولة جديدة قارن order.id مع payment_order، ثم captured_amount مع amount_due. الضعيفة تمنح التحميل مقابل دولار واحد. المُصلحة تعطي 409 ولا ترفع revision. أرسل settled-order100 بعدها لتثبت أن الدفع الصحيح ما زال يعمل.",
+        "ar": "افتح جولة جديدة وجرّب settled-order1. في الضعيفة يسوّي إيصال طلب آخر هذا الطلب. المُصلحة تعيد 409 وتبقيه غير مدفوع. بعد ذلك جرّب settled-order100 وتأكد من التسوية الصحيحة والاستحقاق.",
         "en": "From a fresh round compare order.id with payment_order, then captured_amount with amount_due. The vulnerable implementation grants a download for $1. The fix returns 409 without increasing revision. Submit settled-order100 afterward to prove legitimate settlement still works."
       },
       "bad_code": "if receipt.status == \"settled\": fulfil(order)",
@@ -455,7 +455,7 @@
         "en": "Event evt-demo grants one course download. Providers legitimately retry notifications after network failures. The requirement is idempotent processing rather than rejecting every repeated notification."
       },
       "interpretation": {
-        "ar": "كرر نفس event_id وافحص entitlements.downloads وسجل entitlement_granted. المُصلحة قد تعيد 200 مع idempotent_replay=true لكن لا تنشئ معاملة جديدة أو استحقاقاً ثانياً.",
+        "ar": "افحص عدد استحقاقات التحميل بعد تكرار الحدث نفسه. النسخة الضعيفة تمنح أكثر من مرة؛ المُصلحة تعيد 200 للتكرار الصحيح وتضع idempotent_replay دون استحقاق إضافي. لذلك لا يجب تفسير كل 200 على أنه تنفيذ جديد.",
         "en": "Replay the same event_id and inspect entitlements.downloads and entitlement_granted entries. The fix can return 200 with idempotent_replay=true while creating neither another transaction nor a second entitlement."
       },
       "bad_code": "on_event(): entitlements += 1",
@@ -490,7 +490,7 @@
         "en": "The order has $100 captured. Refund $10, then request $200. Protection must cover cumulative refunds, not just validate each request independently."
       },
       "interpretation": {
-        "ar": "راقب refunded_amount ومعاملات refund_created. الضعيفة تسمح بأن يتجاوز المسترد المحصل. المُصلحة تعيد 409 وتبقي revision والمبلغ كما هما؛ إعادة طلبات صغيرة لا يجوز أن تتجاوز الرصيد المتبقي.",
+        "ar": "قارن المبلغ المحصل بالمبلغ المسترد ومجموع المعاملات. محاولة استرداد 200 دولار من طلب بقيمة 100 يجب أن ترفض بـ409. تكرار استردادات صغيرة لا يجوز أن يتجاوز المتبقي أيضاً؛ راقب المجموع بعد كل عملية.",
         "en": "Inspect refunded_amount and refund_created entries. The vulnerable path lets refunds exceed capture. The fix returns 409 while preserving revision and amount; repeated small refunds must not exceed the remaining balance either."
       },
       "bad_code": "create_refund(requested_amount)",
@@ -527,7 +527,7 @@
         "en": "A gift card holds $100 and two workers each try to spend $60. To reproduce the concurrency error deterministically, the vulnerable schedule gives both workers the same pre-debit balance."
       },
       "interpretation": {
-        "ar": "النتيجة غير المسموحة: رصيد -20 دولاراً ومعاملتا gift_debited. المُصلحة تسمح بعملية واحدة ويبقى 40 دولاراً. هذا ترتيب زمني حتمي وليس اختبار قفل قاعدة بيانات أو إثبات مقاومة للتزامن في خادم موزع. إذا قُبلت عملية ورُفضت أخرى تكون النتيجة 207 مع تفصيل العمليات؛ رفض الجميع يرجع 409.",
+        "ar": "ابدأ جولة جديدة ثم جرّب عمليتي صرف بقيمة 60 دولاراً لكل منهما. الرصيد الأولي 100 دولار: الضعيفة قد تجعله سالباً، والمُصلحة تسمح بعملية واحدة. اقرأ operations لأن 207 يعني أن بعض العمليات فقط نجحت.",
         "en": "The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers. One accepted and one rejected debit returns 207 with operation details; rejecting every debit returns 409."
       },
       "bad_code": "balance_snapshot = balance\nfor worker: if snapshot >= spend: debit(spend)",
@@ -564,7 +564,7 @@
         "en": "A customer has consumed a basic trial and requests a premium trial. If eligibility is tracked per plan, changing plans becomes a route to a second trial for the same identity."
       },
       "interpretation": {
-        "ar": "راقب subscriptions وحالة trialing، ولا تعتبر ظهور زر تجربة دليلاً. المُصلحة تمنع التجربة الثانية بـ409 لكنها تسمح باشتراك paid. تعريف الهوية المشتركة لوسائل الدفع والضرائب يحتاج سياسة منتج خارج هذا النموذج.",
+        "ar": "جرّب طلب تجربة premium لحساب سبق أن استهلك التجربة. الضعيفة تمنح تجربة جديدة عند تغيير اسم الخطة. المُصلحة ترفض بـ409، لكنها تسمح بالاشتراك المدفوع؛ افحص سجل الاشتراكات لتفهم الفرق.",
         "en": "Inspect subscriptions and trialing status; a visible trial button is not evidence. The fix returns 409 for the second trial but permits a paid subscription. Shared payment-identity and billing policy require product decisions beyond this model."
       },
       "bad_code": "eligible = not trials_used[customer, plan]",
@@ -579,7 +579,7 @@
       "en": "Read another user’s object"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من الملكية.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من الملكية.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits ownership."
     },
     "fix": {
@@ -599,7 +599,7 @@
         "en": "The invoice page opens Alice’s a-1 document. Substitute b-1 while keeping the same session; Bob owns it within the same tenant."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "راقب owner ومحتوى الفاتورة في الاستجابة. ظهور بيانات bob داخل جلسة alice هو الأثر المطلوب ملاحظته. بعد الإصلاح يجب أن يرجع b-1 برمز 403 دون بيانات المستند، بينما يبقى a-1 قابلاً للقراءة.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "GET invoice by id → return document",
@@ -614,7 +614,7 @@
       "en": "Update another user’s object"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية التعديل.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من صلاحية التعديل.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits write permission."
     },
     "fix": {
@@ -636,7 +636,7 @@
         "en": "The invoice-note endpoint accepts object and note. Change Bob’s b-1 note and inspect the updated document. Read and write are distinct operations and require separate permissions."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "افحص owner وnote بعد تعديل b-1. الخلل هو تطبيق كتابة على مستند bob من جلسة alice. المُصلحة ترفض بـ403 قبل الكتابة؛ قارنها بتعديل a-1 المسموح ولا تعتبر امتلاك المعرف إذناً بالتعديل.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "document.note = body.note",
@@ -651,7 +651,7 @@
       "en": "Delete another user’s object"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية الحذف.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من صلاحية الحذف.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits delete permission."
     },
     "fix": {
@@ -671,7 +671,7 @@
         "en": "A deletion endpoint must authorize the actor before removing an object. Sending b-1 is destructive within the exercise state: the resource disappears and a repeated deletion returns 404."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "في الضعيفة يؤدي حذف b-1 إلى إزالته من الجولة؛ تكرار الطلب قد يرجع 404 لأنه لم يعد موجوداً. ابدأ جولة جديدة ثم جرّب المُصلحة: يجب أن ترفض بـ403 قبل حذف مستند bob، مع السماح بحذف مستند alice.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "delete_by_id(body.object)",
@@ -686,7 +686,7 @@
       "en": "Nested object mismatch"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من علاقة المورد الفرعي بالأب.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من علاقة المورد الفرعي بالأب.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits parent-child relationship."
     },
     "fix": {
@@ -708,7 +708,7 @@
         "en": "A route such as /customers/alice/invoices/:child does not guarantee that child belongs to Alice. Use an allowed parent with Bob’s child: parent-only authorization leaves the nested resource exposed."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "قارن parent بالمالك الحقيقي للمستند الفرعي. بقاء parent=alice لا يجعل b-1 تابعاً لها. يجب أن تمنع المُصلحة الوصول بـ403 وأن تسمح بالزوج الصحيح alice وa-1؛ افحص علاقة الموردين لا اسم المسار وحده.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "authorize(parent); load(child)",
@@ -723,7 +723,7 @@
       "en": "Tenant isolation"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من مؤسسة الجلسة.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من مؤسسة الجلسة.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits session tenant."
     },
     "fix": {
@@ -745,7 +745,7 @@
         "en": "The B2B application fixes Alice’s tenant as north in the session. The client posts tenant=south and c-1. A tenant field cannot move the session into another organization."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "اقرأ مؤسسة الجلسة ومؤسسة المستند معاً. إرسال tenant=south لا يغيّر جلسة alice التي تنتمي إلى north. ظهور مستند carol في الضعيفة يكشف الخلل؛ المُصلحة ترفض بـ403 قبل إعادة بيانات المؤسسة الأخرى.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "lookup(body.tenant, body.object)",
@@ -760,7 +760,7 @@
       "en": "Per-item batch authorization"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من ملكية كل عنصر.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من ملكية كل عنصر.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits ownership of every item."
     },
     "fix": {
@@ -785,7 +785,7 @@
         "en": "The export service accepts a list of document IDs. Put Bob’s b-1 after the allowed a-1: authorizing the first item or the endpoint itself does not authorize every returned item."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "افحص جميع العناصر المعادة، لا العنصر الأول فقط. إضافة b-1 إلى قائمة تبدأ بـa-1 يجب أن تجعل المُصلحة ترفض الطلب بـ403 دون تسريب المستند غير المسموح. القائمة السليمة التي تحتوي a-1 فقط تبقى متاحة.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "authorize(ids[0]); return load_all(ids)",
@@ -800,7 +800,7 @@
       "en": "Export job ownership"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من ملكية مهمة التصدير.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من ملكية مهمة التصدير.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits export job ownership."
     },
     "fix": {
@@ -820,7 +820,7 @@
         "en": "A background export job created by Bob produces a report. Knowing export-bob must not grant Alice its output even when she can use the export endpoint."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "اقرأ مالك التقرير ومحتواه عند إرسال export-bob. مهمة التصدير تخص bob حتى لو عرفت alice معرفها. المُصلحة تعيد 403 للتقرير غير المملوك وتسمح بتقرير export-alice؛ توافر مسار التصدير لا يمنح ملكية نتائجه.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "return jobs[job_id].result",
@@ -835,7 +835,7 @@
       "en": "Download reference authorization"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية الملف عند التنزيل.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من صلاحية الملف عند التنزيل.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits file permission at download."
     },
     "fix": {
@@ -855,7 +855,7 @@
         "en": "Invoice downloads use references file-alice and file-bob. Random or hard-to-guess references cannot replace authorization when the file is served."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "قارن مالك الملف ومحتواه بين file-alice وfile-bob. النسخة المُصلحة تفحص الجلسة وقت التنزيل وتمنع ملف bob بـ403. صعوبة تخمين المرجع لا تغني عن هذا الفحص، ولا تكفي استجابة 200 دون قراءة هوية الملف.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "return storage[file_id]",
@@ -870,7 +870,7 @@
       "en": "Client-supplied role"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من دور الفاعل المسجل على الخادم.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من دور الفاعل المسجل على الخادم.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits server-stored actor role."
     },
     "fix": {
@@ -892,7 +892,7 @@
         "en": "Alice’s session has a viewer role. A client posts action=admin and role=admin; the defect reads the claimed role from the request instead of trusted user state."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "راقب effective_role وadmin_panel. تغيير role في جسم الطلب لا يجب أن يغيّر دور جلسة alice. الضعيفة تثق بالقيمة وتفتح الإدارة؛ المُصلحة ترفض العملية بـ403 وتعتمد دور viewer المحفوظ على الخادم.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "if body.role == \"admin\": show_admin()",
@@ -907,7 +907,7 @@
       "en": "Mass assignment"
     },
     "cause": {
-      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من قائمة الحقول القابلة للتعديل.",
+      "ar": "يستخدم الخادم معرف المورد القادم من الطلب دون التحقق من قائمة الحقول القابلة للتعديل.",
       "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits an allowlist of editable fields."
     },
     "fix": {
@@ -928,7 +928,7 @@
         "en": "The profile form should edit display_name. Add is_admin=true to JSON: binding every request field to the user object may write a protected field the UI never displayed."
       },
       "interpretation": {
-        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "ar": "قارن display_name وis_admin في نتيجة الحفظ. تغيير اسم العرض مسموح، لكن إضافة is_admin ليست جزءاً من هذه الميزة. المُصلحة ترفض الحقل المحمي بـ403 بدلاً من نسخه إلى الحساب، مع بقاء تعديل الاسم متاحاً.",
         "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
       },
       "bad_code": "profile.update(request.json)",
@@ -943,7 +943,7 @@
       "en": "Untrusted forwarded IP"
     },
     "cause": {
-      "ar": "المفتاح هو مصدر وهمي من حقل الطلب؛ تغييره ينشئ سلة جديدة.",
+      "ar": "المفتاح هو مصدر وهمي من حقل الطلب؛ تغييره ينشئ عداد جديدة.",
       "en": "A source label supplied by the client creates a new bucket when changed."
     },
     "fix": {
@@ -967,7 +967,7 @@
         "en": "The limiter trusts client-supplied X-Forwarded-For. After exhausting 192.0.2.1, send 192.0.2.2. The question is whether the budget identity changes without changing the account."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = header[\"X-Forwarded-For\"]",
@@ -1006,7 +1006,7 @@
         "en": "Even trustworthy network addresses can distribute attempts against one identity. This case counts the same account across local source labels without operating proxies."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "limit_by(source_ip)",
@@ -1021,7 +1021,7 @@
       "en": "IPv6 canonicalization"
     },
     "cause": {
-      "ar": "العنوان نفسه بصيغتين نصيتين ينتج سلتين.",
+      "ar": "العنوان نفسه بصيغتين نصيتين ينتج عدادين.",
       "en": "Two spellings of the same address create two raw-string buckets."
     },
     "fix": {
@@ -1045,7 +1045,7 @@
         "en": "2001:db8::1 and 2001:0db8:0:0:0:0:0:1 represent the same address. Raw-string buckets split the identity; canonicalize addresses and account identity before constructing keys."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = raw_address_string",
@@ -1082,7 +1082,7 @@
         "en": "Authentication in this case treats email case-insensitively, but the vulnerable limiter does not. Exhaust alice@example.test, then use ALICE@example.test."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = raw_email",
@@ -1121,7 +1121,7 @@
         "en": "The login and legacy routes perform the same operation but keep separate counters. Exhausting the current route must not expose a fresh budget on the legacy route."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = route + account",
@@ -1160,7 +1160,7 @@
         "en": "Issuing a challenge changes its ID from one to two. A budget bound only to the challenge lifetime can forget the account’s cumulative attempts."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = challenge_id",
@@ -1197,7 +1197,7 @@
         "en": "Three attempts at second 59 and three at 60 exceed three per rolling 60 seconds while respecting fixed minute buckets. An explicit lab clock makes the boundary reproducible without waiting."
       },
       "interpretation": {
-        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "ar": "ابدأ باستهلاك ميزانية المحاولات في كل نسخة باستخدام طلب البداية، ثم حمّل مثال الحالة. افحص عدد المحاولات التي وصلت إلى التحقق وعدد المحاولات المحجوبة. في المُصلحة يجب ألا يمنح تغيير الحقل ميزانية جديدة للحساب نفسه. نتيجة 401 تعني أن محاولة وصلت إلى التحقق وفشلت؛ و429 تعني أن العداد منعها قبل التحقق. عناوين المصدر والوقت هنا قيم تدريبية ولا تغيّر عنوان جهازك.",
         "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
       },
       "bad_code": "bucket = int(server_time / 60)",
@@ -1270,7 +1270,7 @@
         "en": "Input appears between tags in a search results page. Raw rendering creates an img node and an onerror handler; matching text in JSON or an HTML entity is not equivalent to execution."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "output = \"<div>\" + value + \"</div>\"",
@@ -1343,7 +1343,7 @@
         "en": "The page repopulates a search input inside value=\"...\". A payload must first close the double quote; ordinary HTML markup may otherwise remain an attribute value."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "html = '<input value=\"' + value + '\">'",
@@ -1416,7 +1416,7 @@
         "en": "The reflection sits inside a single-quoted attribute. Escaping only double quotes leaves this boundary open, while a quote entity is not an attribute delimiter during parsing."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "html = \"<input value='\" + value + \"'>\"",
@@ -1489,7 +1489,7 @@
         "en": "A legacy template emits an unquoted value attribute. Whitespace or > can terminate it; blocking a particular quote cannot protect an unquoted context."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "html = \"<input value=\" + value + \">\"",
@@ -1562,7 +1562,7 @@
         "en": "A template embeds the search term in a single-quoted JavaScript string. A delimiter can switch data into a statement; HTML escaping is not a JavaScript encoding contract."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "script = \"const input='\" + value + \"';\"",
@@ -1635,7 +1635,7 @@
         "en": "The UI generates a backtick template literal. In this context ${...} evaluates an expression without requiring an HTML-tag payload."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "script = \"const input=`\" + value + \"`;\"",
@@ -1708,7 +1708,7 @@
         "en": "A return page builds a link from input. HTML escaping protects attribute syntax but does not decide whether javascript is an allowed scheme. This sandbox checks the resulting link policy without claiming execution."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب href وقرار السماح بالمخطط. الضعيفة تبقي رابط javascript: والمُصلحة تستبدله بوجهة محجوبة. هذه الحالة تفحص سياسة الرابط فقط؛ لا يثبت الإطار المعزول تنفيذ الرابط أو استغلاله. جرّب /welcome للتأكد أن الوجهة السليمة ما زالت تعمل.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "href = html_escape(value)",
@@ -1781,7 +1781,7 @@
         "en": "A preview reads the part after # in its own URL. The fragment is not sent in HTTP, but client JavaScript decodes it into innerHTML. Evidence belongs in the DOM and browser, not a server-response reflection."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "output.innerHTML = decodeURIComponent(location.hash.slice(1))",
@@ -1854,7 +1854,7 @@
         "en": "The preview reads a search parameter rather than q. Looking for one parameter name misses other data flows; trace URLSearchParams to the innerHTML sink."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "output.innerHTML = new URLSearchParams(location.search).get(\"search\")",
@@ -1927,7 +1927,7 @@
         "en": "A customer posts a comment stored in the server round. A later, separate GET renders it. The flaw is unescaped rendering, not merely accepting text at the storage endpoint."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "store(comment); later_render_as_html(comment)",
@@ -2000,7 +2000,7 @@
         "en": "The processing chain decodes HTML entities before assigning to innerHTML. An &lt;...&gt; input becomes markup after decoding, while an extra encoding layer may remain text."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "output.innerHTML = decode_entities(input)",
@@ -2073,7 +2073,7 @@
         "en": "Two stages URL-decode in sequence: %253C becomes %3C, then <. Inspecting text before the full transformation does not describe what reaches the sink."
       },
       "interpretation": {
-        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "ar": "راقب سجل المتصفح تحت المعاينة. في الضعيفة يجب أن يظهر رصد alert عند وصول الحمولة إلى موضع الإدراج الموضح أعلاه. أرسل الحمولة نفسها إلى المُصلحة: يجب أن تبقى بيانات دون رصد التنفيذ، ثم جرّب hello للتأكد من العرض الطبيعي. وجود الحمولة في JSON أو استجابة 200 وحدهما لا يثبت XSS، وعدم رصدها في هذه المحاولة لا يغطي جميع الحالات.",
         "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
       },
       "bad_code": "output.innerHTML = decode_url(decode_url(input))",
@@ -2108,7 +2108,7 @@
         "en": "Alice’s note search concatenates query into WHERE owner=alice AND note LIKE .... A real in-memory SQLite parser can interpret modified syntax and return Bob’s note without changing the session actor."
       },
       "interpretation": {
-        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "ar": "اقرأ مالك كل ملاحظة في النتيجة. المثال المخالف يغيّر بنية استعلام الضعيفة ويعيد ملاحظة bob. المُصلحة تستخدم معاملات SQL؛ تعيد 200 مع قائمة فارغة للمثال نفسه، ثم تعيد ملاحظة alice عند البحث السليم. عدم وجود 403 هنا طبيعي.",
         "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
       },
       "bad_code": "sql = \"... note LIKE '%\" + query + \"%'\"",
@@ -2145,7 +2145,7 @@
         "en": "A sign-in API expects a password string. The vulnerable query accepts a $ne comparison object; authentication changes through a type confusion rather than a guessed password."
       },
       "interpretation": {
-        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "ar": "قارن نوع password أولاً ثم authenticated. الكائن الذي يحمل $ne قد ينجح في الضعيفة دون كلمة المرور الصحيحة. المُصلحة ترفض نوعه بـ422؛ كلمة مرور نصية خاطئة تعيد 401، والصحيحة وحدها تعيد نجاح الدخول.",
         "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
       },
       "bad_code": "query.password = request.json.password",
@@ -2180,7 +2180,7 @@
         "en": "A preview service mixes input with an evaluated template. The local renderer supports only bounded arithmetic to demonstrate {{7*7}} without eval or system instructions."
       },
       "interpretation": {
-        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "ar": "قارن النص المدخل بالنص الناتج. في الضعيفة تصبح {{7*7}} القيمة 49، وفي المُصلحة تبقى نصاً حرفياً. هذا يوضح الفرق بين البيانات والتعبير القابل للتقييم؛ المحرك محدود بالحساب ولا ينفذ أوامر النظام.",
         "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
       },
       "bad_code": "render_as_template(user_input)",
@@ -2188,54 +2188,19 @@
     }
   },
   {
-    "id": "code-redirect",
-    "group": "code",
-    "title": {
-      "ar": "تحويل خارجي غير مقيد",
-      "en": "Unrestricted redirect decision"
-    },
-    "cause": {
-      "ar": "الحقل next يقبل وجهة خارجية دون سياسة. لا يحدث انتقال خارجي.",
-      "en": "The next field accepts an external destination without policy. No external navigation occurs."
-    },
-    "fix": {
-      "ar": "اقبل مسارات محلية محددة بعد التحليل والتطبيع.",
-      "en": "Allow specific parsed and normalized local paths."
-    },
-    "normal": {
-      "next": "/welcome"
-    },
-    "attack": {
-      "next": "https://outside.example/"
-    },
-    "level": "intermediate",
-    "lesson": {
-      "story": {
-        "ar": "وجهة العودة next تأتي من رابط المستخدم. التطبيق يفترض أن الرابط جزء من مساره ويقبل وجهة خارجية؛ هذه الحالة تعرض قرار التحويل ولا تنقل المتصفح إلى نطاق آخر.",
-        "en": "The next return destination comes from a user link. The application assumes it is part of its own flow and accepts an external destination. This case shows the redirect decision without navigating off-device."
-      },
-      "interpretation": {
-        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
-        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
-      },
-      "bad_code": "redirect(body.next)",
-      "fixed_code": "redirect(allowlisted_local_destination(body.next))"
-    }
-  },
-  {
     "id": "code-ssrf",
-    "group": "code",
+    "group": "ssrf",
     "title": {
-      "ar": "نقل إلى خدمة داخلية وهمية",
-      "en": "Synthetic internal fetch"
+      "ar": "الوصول إلى خدمة داخلية",
+      "en": "Internal service access"
     },
     "cause": {
-      "ar": "قائمة نقل مغلقة تسمح بقراءة عينة داخلية؛ لا يوجد اتصال شبكة.",
-      "en": "A closed transport fixture exposes an internal response without networking."
+      "ar": "تقبل النسخة الضعيفة وجهة داخلية كما لو كانت رابطاً عاماً.",
+      "en": "The vulnerable variant accepts an internal destination as a public URL."
     },
     "fix": {
-      "ar": "طبق سياسة وجهات وحقق منها عند كل تحويل قبل النقل الفعلي.",
-      "en": "Enforce destination policy and revalidate every redirect before transport."
+      "ar": "اسمح بالوجهات العامة المعتمدة فقط، وامنع الوصول إلى العناوين الداخلية قبل الاتصال.",
+      "en": "Allow approved public destinations and reject internal addresses before connecting."
     },
     "normal": {
       "url": "https://public.lab/welcome"
@@ -2246,15 +2211,1215 @@
     "level": "intermediate",
     "lesson": {
       "story": {
-        "ar": "خدمة معاينة الروابط تملك وصولاً منطقياً إلى public.lab وinternal.lab. اختيار URL داخلي يكشف مورد إعدادات خاصاً في عينة النقل المغلقة؛ لا توجد اتصالات DNS أو شبكة خارجية.",
-        "en": "A link-preview service has logical access to public.lab and internal.lab. Selecting an internal URL exposes a private configuration resource in the closed transport fixture; no DNS or external network calls occur."
+        "ar": "عنوان الرابط يأتي من المستخدم، والخادم يقرأه لإعداد معاينة. المورد العام يعرض رسالة ترحيب، أما مورد الإعدادات فمخصص للخدمات الداخلية.",
+        "en": "The preview service reads a submitted URL. Public URLs return a welcome message; the configuration resource is reserved for internal services."
       },
       "interpretation": {
-        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
-        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
       },
-      "bad_code": "fetch(user_url)",
-      "fixed_code": "validate_destination_and_each_redirect(user_url)"
+      "bad_code": "return transport.read(user_url)",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "ssrf-loopback",
+    "group": "ssrf",
+    "title": {
+      "ar": "الوصول إلى loopback",
+      "en": "Loopback destination"
+    },
+    "cause": {
+      "ar": "لا تستبعد السياسة الضعيفة عناوين loopback من وجهات القراءة.",
+      "en": "The weak policy does not exclude loopback destinations."
+    },
+    "fix": {
+      "ar": "افحص العنوان النهائي وامنع loopback والشبكات الخاصة والوجهات غير المعتمدة.",
+      "en": "Validate the final address and reject loopback, private networks and unapproved destinations."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "http://127.0.0.1/admin"
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة المعاينة تعمل على الخادم. لذلك يشير 127.0.0.1، من وجهة نظرها، إلى الخادم نفسه وليس جهاز المستخدم.",
+        "en": "A server-side preview interprets 127.0.0.1 as its own host, not the visitor’s device."
+      },
+      "interpretation": {
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
+      },
+      "bad_code": "return transport.read(url)  # loopback not excluded",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "ssrf-redirect",
+    "group": "ssrf",
+    "title": {
+      "ar": "تحويل من رابط عام إلى خدمة داخلية",
+      "en": "Public-to-private redirect"
+    },
+    "cause": {
+      "ar": "تفحص النسخة الضعيفة الرابط الأول فقط ثم تتبع التحويل دون فحص الوجهة التالية.",
+      "en": "The weak variant checks the first URL but follows the next destination without validation."
+    },
+    "fix": {
+      "ar": "أعد تطبيق سياسة الوجهات على كل خطوة، وضع حداً لعدد التحويلات.",
+      "en": "Reapply the destination policy at every hop and bound the redirect count."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "https://public.lab/redirect"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يعيد الرابط الأول توجيه خدمة المعاينة إلى رابط آخر. تبدأ هذه الحالة بوجهة عامة ثم تحوّل القراءة إلى مورد داخلي.",
+        "en": "A preview may follow a redirect. This fixture starts at a public URL and redirects to an internal resource."
+      },
+      "interpretation": {
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
+      },
+      "bad_code": "validate(first_url)\nreturn transport.follow_redirects(first_url)",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "ssrf-userinfo",
+    "group": "ssrf",
+    "title": {
+      "ar": "الالتباس بين اسم المستخدم والمضيف",
+      "en": "URL userinfo confusion"
+    },
+    "cause": {
+      "ar": "تعتمد السياسة الضعيفة على بداية النص بدلاً من قراءة المضيف بواسطة محلل URL.",
+      "en": "The weak policy trusts a string prefix instead of parsing the URL host."
+    },
+    "fix": {
+      "ar": "حلّل الرابط، ارفض userinfo غير الضروري، ثم افحص المضيف والعنوان النهائي.",
+      "en": "Parse the URL, reject unnecessary userinfo, and validate its host and final address."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "https://public.lab@internal.lab/config"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "يحتوي الرابط على جزء قبل @ وجزء بعدها. المضيف الحقيقي هنا هو internal.lab؛ وجود public.lab في النص لا يجعله وجهة الاتصال.",
+        "en": "A URL can contain userinfo before @. Here the actual host is internal.lab; the text public.lab does not identify the destination."
+      },
+      "interpretation": {
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
+      },
+      "bad_code": "if url.startswith(\"https://public.lab\"):\n    return transport.read(url)",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "ssrf-dns",
+    "group": "ssrf",
+    "title": {
+      "ar": "تغيّر عنوان DNS بين الفحص والقراءة",
+      "en": "DNS validation / connection mismatch"
+    },
+    "cause": {
+      "ar": "تسمح السياسة الضعيفة بإعادة حل الاسم بعد التحقق واستخدام عنوان لم يُفحص.",
+      "en": "The weak policy resolves the name again after validation and uses an unchecked address."
+    },
+    "fix": {
+      "ar": "اربط الاتصال بعنوان سبق التحقق منه، وتحقق من عنوان النظير الفعلي ضمن طبقة النقل.",
+      "en": "Bind transport to a validated address and verify the actual peer at the transport layer."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "https://changing.lab/config"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "يمثل هذا التمرين رابطاً يُظهر عنواناً عاماً وقت التحقق، ثم عنوان loopback وقت الاتصال. العناوين معرّفة داخل المختبر ولا توجد استعلامات DNS فعلية.",
+        "en": "This fixture reports a public address during validation and a loopback address at connection time. Both answers are predefined; there are no actual DNS queries."
+      },
+      "interpretation": {
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
+      },
+      "bad_code": "validate(resolve(host))\nreturn connect(resolve(host))  # second DNS answer unchecked",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "ssrf-port",
+    "group": "ssrf",
+    "title": {
+      "ar": "خدمة إدارية على منفذ آخر",
+      "en": "Alternate administrative port"
+    },
+    "cause": {
+      "ar": "تفحص السياسة الضعيفة اسم المضيف وتتجاهل المنفذ المطلوب.",
+      "en": "The weak policy checks the host but ignores the requested port."
+    },
+    "fix": {
+      "ar": "حدد الوجهات كمجموعات من البروتوكول والمضيف والمنفذ والخدمة المسموحة.",
+      "en": "Allow explicit combinations of scheme, host, port and permitted service."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "https://public.lab:8443/admin"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يستضيف المضيف نفسه خدمة عامة وأخرى إدارية على منفذين مختلفين. السماح باسم المضيف لا يعني السماح بجميع خدماته.",
+        "en": "A host can expose public and administrative services on different ports. Approving its hostname does not approve every service."
+      },
+      "interpretation": {
+        "ar": "راقب content وخطوات trace. ظهور PRIVATE_DEMO_CONFIG يعني أن النموذج قرأ مورداً داخلياً. بعد الإصلاح تتوقع 403 بلا محتوى خاص وبلا خطوة قراءة. النقل هنا محاكاة مغلقة؛ لا يرسل المختبر طلبات إلى هذه العناوين.",
+        "en": "Inspect content and trace. PRIVATE_DEMO_CONFIG means the model read an internal fixture. The fix returns 403 with no private content or fixture-read step. Transport is closed simulation; these URLs are never requested."
+      },
+      "bad_code": "if parsed.hostname == \"public.lab\":\n    return transport.read(url)  # any port",
+      "fixed_code": "destination = validate_scheme_host_port_and_address(url)\nreturn bounded_transport(destination, revalidate_each_redirect=True)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: url. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: url. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "code-redirect",
+    "group": "redirect",
+    "title": {
+      "ar": "رابط خارجي كامل",
+      "en": "Absolute external URL"
+    },
+    "cause": {
+      "ar": "تنسخ النسخة الضعيفة رابط المستخدم إلى وجهة التحويل دون تقييد.",
+      "en": "The weak variant accepts the submitted destination without restricting it."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "https://outside.example/landing"
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "تستخدم صفحة تسجيل الدخول قيمة next لاختيار الصفحة التالية. المسار /account وجهة سليمة داخل التطبيق.",
+        "en": "A sign-in flow uses next to choose the following page. /account is a valid internal destination."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "return destination(user_next)",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "redirect-relative",
+    "group": "redirect",
+    "title": {
+      "ar": "رابط يبدأ بشرطتين مائلتين",
+      "en": "Protocol-relative URL"
+    },
+    "cause": {
+      "ar": "يفحص التطبيق وجود https فقط، فيمر رابط خارجي بلا اسم بروتوكول.",
+      "en": "A scheme-only filter misses an external URL without an explicit scheme."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "//outside.example/landing"
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "يبدأ الرابط بشرطتين مائلتين دون اسم بروتوكول. يفسره المتصفح كوجهة على مضيف آخر مع استخدام بروتوكول الصفحة الحالية.",
+        "en": "A URL beginning with // selects another host while inheriting the current scheme."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "if not next.startswith(\"https:\"):\n    return destination(next)",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "redirect-backslash",
+    "group": "redirect",
+    "title": {
+      "ar": "اختلاف تفسير الشرطة العكسية",
+      "en": "Backslash normalization"
+    },
+    "cause": {
+      "ar": "تعدّ السياسة الضعيفة بداية الرابط مساراً داخلياً، ثم يصبح مضيفاً خارجياً بعد توحيد الشرطات.",
+      "en": "The weak policy treats the input as a local path before normalization produces an external host."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "/\\outside.example/landing"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد تختلف قراءة التطبيق للنص عن قراءة المتصفح للشرطات العكسية في روابط HTTP. يعرض التمرين الوجهة بعد توحيد الشرطات.",
+        "en": "An application and browser may interpret backslashes differently in HTTP URLs. The fixture shows the normalized destination."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "if next.startswith(\"/\"):\n    return destination(browser_normalize(next))",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "redirect-encoded",
+    "group": "redirect",
+    "title": {
+      "ar": "فك الترميز بعد التحقق",
+      "en": "Decoding after validation"
+    },
+    "cause": {
+      "ar": "تتحقق النسخة الضعيفة من النص قبل فك الترميز وتستخدمه بعد فك الترميز.",
+      "en": "The weak variant validates the encoded value but uses the decoded value."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "%2F%2Foutside.example/landing"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يفك التطبيق ترميز next قبل استخدامه. قيمة تبدو نصاً عادياً قد تصبح رابطاً يبدأ بـ // بعد فك الترميز.",
+        "en": "The application may decode next before use. An apparently ordinary string can become a // URL after decoding."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "validate(raw_next)\nreturn destination(decode(raw_next))",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "redirect-suffix",
+    "group": "redirect",
+    "title": {
+      "ar": "اسم مضيف يبدأ بالاسم الموثوق",
+      "en": "Trusted-name prefix confusion"
+    },
+    "cause": {
+      "ar": "تستخدم السياسة الضعيفة مطابقة بداية النص بدل مقارنة المضيف كاملاً.",
+      "en": "The weak policy matches a text prefix instead of the complete host."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "https://app.lab.outside.example/landing"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "الوجهة الموثوقة هي app.lab. أما app.lab.outside.example فهي مضيف مختلف، حتى لو بدأ اسمه بالنص نفسه.",
+        "en": "The trusted host is app.lab. app.lab.outside.example is a different host even though it starts with the same text."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "if next.startswith(\"https://app.lab\"):\n    return destination(next)",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "redirect-nested",
+    "group": "redirect",
+    "title": {
+      "ar": "تحويل ثانٍ داخل مسار محلي",
+      "en": "Nested local redirect"
+    },
+    "cause": {
+      "ar": "تسمح النسخة الضعيفة بالمسار المحلي دون فحص وجهة التحويل الثانية.",
+      "en": "The weak variant approves the local path without checking the second redirect destination."
+    },
+    "fix": {
+      "ar": "استخدم أسماء وجهات ثابتة يربطها الخادم بمسارات داخلية، أو قارن الوجهة النهائية بعد التحليل والتوحيد بقائمة سماح دقيقة.",
+      "en": "Map server-defined destination identifiers to internal paths, or compare the parsed and normalized final destination against an exact allowlist."
+    },
+    "normal": {
+      "next": "/account"
+    },
+    "attack": {
+      "next": "/continue?next=https%3A%2F%2Foutside.example%2Flanding"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يكون الرابط الأول مساراً محلياً، لكنه يمرر next إلى صفحة أخرى تنفذ تحويلاً ثانياً. يجب تتبع الوجهة النهائية.",
+        "en": "The initial URL can be local while passing next to another page that redirects again. Follow the final destination."
+      },
+      "interpretation": {
+        "ar": "قارن submitted وdestination وexternal. النسخة الضعيفة تقترح وجهة خارجية؛ المُصلحة تعيد 403. الحالة 200 هنا هي استجابة واجهة اتخاذ القرار وليست تحويل HTTP برمز 302؛ لا يفتح المختبر أي موقع خارجي.",
+        "en": "Compare submitted, destination and external. The weak policy proposes an external destination; the fix returns 403. A 200 is the decision API response, not an HTTP 302 redirect; no external page is opened."
+      },
+      "bad_code": "if parsed.path == \"/continue\":\n    return destination(parsed.query[\"next\"])",
+      "fixed_code": "routes = {\"account\": \"/account\", \"welcome\": \"/welcome\"}\nreturn destination(routes[validated_route_id])",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: next. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: next. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-missing",
+    "group": "csrf",
+    "title": {
+      "ar": "غياب التحقق من رمز CSRF",
+      "en": "Missing CSRF verification"
+    },
+    "cause": {
+      "ar": "تقبل النسخة الضعيفة طلب التعديل دون رمز CSRF.",
+      "en": "The weak variant accepts an update without a CSRF token."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "Changed without consent"
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "تعتمد ميزة تعديل ملاحظة الحساب على جلسة المستخدم. يمكن إرسال نموذج من صفحة أخرى، ولذلك لا تكفي الجلسة وحدها لإثبات أن المستخدم طلب التعديل.",
+        "en": "The profile-note feature uses the account session. Another page can submit a form, so a session alone does not prove the user intended the update."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 403 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 403 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if \"token\" not in form:\n    return update_note(form[\"note\"])",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-empty",
+    "group": "csrf",
+    "title": {
+      "ar": "قبول رمز فارغ",
+      "en": "Empty token accepted"
+    },
+    "cause": {
+      "ar": "يمر فرع الرمز الفارغ دون مقارنة فعلية، فيُقبل الطلب.",
+      "en": "The empty-token branch skips the comparison and accepts the request."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "token": "",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "Changed without consent"
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "يفترض نموذج تعديل الملف وجود رمز مرتبط بالجلسة. وجود حقل token في الطلب لا يعني أن قيمته صالحة.",
+        "en": "The profile form expects a session-bound token. Merely including a token field does not make its value valid."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 403 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 403 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if not form[\"token\"]:\n    return update_note(form[\"note\"])",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-binding",
+    "group": "csrf",
+    "title": {
+      "ar": "رمز صحيح لجلسة أخرى",
+      "en": "Token not bound to the session"
+    },
+    "cause": {
+      "ar": "تتحقق النسخة الضعيفة من وجود الرمز في قائمة الرموز دون ربطه بجلسة صاحب الطلب.",
+      "en": "The weak variant checks that a token exists without binding it to the requesting session."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "token": "session-bob-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "Changed without consent"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "لكل جلسة رمزها الخاص. يمتلك bob رمزاً صحيحاً لحسابه، لكنه لا يجب أن يجيز تعديل حساب alice.",
+        "en": "Each session has its own token. Bob’s valid token must not authorize a change to Alice’s account."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 403 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 403 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if token in all_session_tokens:\n    return update_note(note)",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-origin",
+    "group": "csrf",
+    "title": {
+      "ar": "إعفاء غير آمن بناءً على Origin",
+      "en": "Unsafe Origin-based exemption"
+    },
+    "cause": {
+      "ar": "تفحص السياسة بداية نص Origin فقط، فتعد https://app.lab.untrusted.lab أصلاً موثوقاً وتعفيه من فحص الرمز.",
+      "en": "The weak policy checks only the Origin prefix, trusting https://app.lab.untrusted.lab and exempting it from token verification."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://app.lab.untrusted.lab",
+      "token": "",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "Changed without consent"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "تعفي بعض التطبيقات مصادر تعتبرها موثوقة من رمز CSRF. أي خطأ في التحقق من الأصل يجعل هذا الاستثناء يسمح بطلب من صفحة غير موثوقة.",
+        "en": "Some applications exempt trusted origins from CSRF tokens. An origin-validation error can extend that exemption to an untrusted page."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 403 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 403 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if origin.startswith(\"https://app.lab\"):\n    return update_note(note)  # token exempt",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-get",
+    "group": "csrf",
+    "title": {
+      "ar": "تغيير البيانات بطلب GET",
+      "en": "State change through GET"
+    },
+    "cause": {
+      "ar": "تنفذ النسخة الضعيفة تعديل البيانات عبر GET دون رمز CSRF.",
+      "en": "The weak variant changes state through GET without a CSRF token."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "token": "",
+      "method": "GET",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "Changed without consent"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "يجب أن تقرأ طلبات GET البيانات دون تعديل الحساب. وضع تعديل الملاحظة في GET يسمح بتشغيله عبر زيارة رابط أو تضمين مورد.",
+        "en": "GET should read data without updating an account. A state-changing GET can be triggered by navigation or an embedded resource."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 405 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 405 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if method == \"GET\":\n    return update_note(query[\"note\"])  # no token",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: method، origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: method, origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "csrf-content-type",
+    "group": "csrf",
+    "title": {
+      "ar": "تجاوز التحقق بتغيير نوع المحتوى",
+      "en": "Content-type validation gap"
+    },
+    "cause": {
+      "ar": "يتجاوز مسار text/plain فحص الرمز ثم يصل إلى عملية التعديل نفسها.",
+      "en": "The text/plain parsing path skips token verification but reaches the same update operation."
+    },
+    "fix": {
+      "ar": "اجعل التعديل عبر POST بنوع محتوى معروف، وتحقق من الأصل ومن رمز غير فارغ مرتبط بالجلسة. ارفض الطلب قبل تعديل البيانات.",
+      "en": "Use POST with a supported content type, validate the origin and a nonempty session-bound token, and reject before changing data."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "token": "session-alice-token",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "note": "My profile note"
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "token": "",
+      "method": "POST",
+      "content_type": "text/plain",
+      "note": "Changed without consent"
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يصل طلب التعديل بأكثر من نوع محتوى. يجب تطبيق حماية CSRF على كل المسارات التي تنفذ التعديل أو رفض الأنواع غير المدعومة.",
+        "en": "An update can arrive with different content types. Every state-changing parsing path needs CSRF protection, or unsupported types must be rejected."
+      },
+      "interpretation": {
+        "ar": "راقب before وnote وoperation_applied. المثال في الضعيفة يطبّق تعديل الملاحظة، أما المُصلحة فتعيد 415 وتترك الملاحظة السابقة دون تغيير. إذا أعدت كتابة النص نفسه فقد يكون changed=false رغم تطبيق العملية؛ لذلك راقب operation_applied أيضاً. Origin ورمز الجلسة مدخلات لمحاكاة السياسة، وليسا إثبات هجوم متصفح فعلي.",
+        "en": "Inspect before, note and operation_applied. The vulnerable example applies the note update; the fix returns 415 and preserves the prior note. Rewriting identical text can leave changed=false even when the operation applied. Origin and session tokens are policy fixtures, not proof of a real browser CSRF exploit."
+      },
+      "bad_code": "if content_type == \"text/plain\":\n    return update_note(parse_body(body))  # token check skipped",
+      "fixed_code": "require_method(\"POST\")\nrequire_content_type(\"application/x-www-form-urlencoded\")\nrequire_exact_origin(origin)\nrequire_session_bound_token(token, session)\nreturn update_note(note)",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: content_type، origin، token. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: content_type, origin, token. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-reflect",
+    "group": "cors",
+    "title": {
+      "ar": "عكس أي Origin مع بيانات الجلسة",
+      "en": "Arbitrary origin reflection"
+    },
+    "cause": {
+      "ar": "تنسخ النسخة الضعيفة أي Origin إلى Access-Control-Allow-Origin وتسمح ببيانات الجلسة.",
+      "en": "The weak variant reflects arbitrary Origin and permits credentials."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "credentials": true
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "تحتاج واجهة الحساب إلى قراءة بيانات خاصة من API. عند السماح لموقع آخر بالقراءة مع بيانات الجلسة، يجب أن يكون أصله موثوقاً بدقة.",
+        "en": "The account UI reads a private API. Another origin may read it with session credentials only when explicitly trusted."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow_origin = request.origin\nallow_credentials = True",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-null",
+    "group": "cors",
+    "title": {
+      "ar": "السماح بالأصل null",
+      "en": "Trusting the null origin"
+    },
+    "cause": {
+      "ar": "تعتبر السياسة الضعيفة null أصلاً موثوقاً وتسمح له بقراءة بيانات خاصة.",
+      "en": "The weak policy trusts null and allows it to read private data."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "null",
+      "credentials": true
+    },
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "يمكن لبعض المستندات المعزولة أن ترسل Origin بقيمة null. هذه القيمة لا تدل على موقع موثوق واحد.",
+        "en": "Some sandboxed documents send Origin: null. That value does not identify a single trusted website."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow = origin in {\"https://app.lab\", \"null\"}",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-prefix",
+    "group": "cors",
+    "title": {
+      "ar": "مطابقة بداية الأصل فقط",
+      "en": "Origin prefix matching"
+    },
+    "cause": {
+      "ar": "تسمح مطابقة بداية النص بأصل غير تابع للتطبيق.",
+      "en": "A prefix match admits an origin outside the application."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "https://app.lab.outside.example",
+      "credentials": true
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "الثقة بالأصل تشمل البروتوكول والمضيف والمنفذ. بداية النص https://app.lab قد تظهر أيضاً في أصل يخص موقعاً مختلفاً.",
+        "en": "Origin trust includes scheme, host and port. The prefix https://app.lab can appear in a different site’s origin."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow = origin.startswith(\"https://app.lab\")",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-suffix",
+    "group": "cors",
+    "title": {
+      "ar": "مطابقة نهاية اسم المضيف بلا حدود",
+      "en": "Hostname suffix without a boundary"
+    },
+    "cause": {
+      "ar": "تفحص السياسة نهاية النص app.lab دون التحقق من تطابق الاسم أو وجود نقطة فاصلة.",
+      "en": "The weak policy checks a text suffix without exact-host or dot-boundary validation."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "https://notapp.lab",
+      "credentials": true
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "الاسم notapp.lab ليس app.lab ولا نطاقاً فرعياً منه. يجب أن تحترم مطابقة النطاقات حدود أسماء المضيفين.",
+        "en": "notapp.lab is neither app.lab nor its subdomain. Domain checks must respect hostname boundaries."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow = hostname.endswith(\"app.lab\")",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-scheme",
+    "group": "cors",
+    "title": {
+      "ar": "تجاهل بروتوكول الأصل",
+      "en": "Ignoring the origin scheme"
+    },
+    "cause": {
+      "ar": "تقارن النسخة الضعيفة المضيف وحده وتتجاهل اختلاف البروتوكول.",
+      "en": "The weak variant compares only the host and ignores the scheme."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "http://app.lab",
+      "credentials": true
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "الأصل https://app.lab يختلف عن http://app.lab. السماح لواجهة آمنة لا يجيز تلقائياً قراءة البيانات من أصل يستخدم HTTP.",
+        "en": "https://app.lab and http://app.lab are different origins. Trusting the secure UI does not automatically trust its HTTP counterpart."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow = parsed.hostname == \"app.lab\"  # scheme ignored",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
+    }
+  },
+  {
+    "id": "cors-preflight",
+    "group": "cors",
+    "title": {
+      "ar": "سماح واسع في الطلب التمهيدي والفعلي",
+      "en": "Overbroad preflight and actual response"
+    },
+    "cause": {
+      "ar": "تسمح النسخة الضعيفة للأصل غير الموثوق في الطلب التمهيدي ثم تكرر السماح في الاستجابة الخاصة.",
+      "en": "The weak variant admits an untrusted origin in preflight and repeats the grant on the private response."
+    },
+    "fix": {
+      "ar": "قارن الأصل كاملاً بقائمة سماح محددة، واسمح ببيانات الجلسة عند الحاجة فقط. طبّق القرار نفسه على الطلب التمهيدي والفعلي، وأضف Vary: Origin للاستجابات المتغيرة.",
+      "en": "Use an exact origin allowlist, permit credentials only when needed, apply the same policy to preflight and actual responses, and add Vary: Origin when responses vary."
+    },
+    "normal": {
+      "origin": "https://app.lab",
+      "credentials": true
+    },
+    "attack": {
+      "origin": "https://untrusted.lab",
+      "credentials": true
+    },
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "قد يرسل المتصفح OPTIONS قبل الطلب الذي يحمل رأساً مخصصاً. يجب أن يتفق قرار الطلب التمهيدي والاستجابة الفعلية على الأصول المسموحة.",
+        "en": "A custom header can cause an OPTIONS preflight. The preflight policy and actual response must agree on allowed origins."
+      },
+      "interpretation": {
+        "ar": "راقب response_headers وreadable وprivate. قد يبقى HTTP 200 في النسختين؛ الفرق هو السماح للصفحة الأخرى بقراءة الجسم. هذه نتيجة نموذج سياسة CORS وليست تجربة متصفح عبر أصلين. الرأس Origin داخل JSON يمثل مدخلاً تدريبياً ولا يغيّر أصل طلب المتصفح الحقيقي.",
+        "en": "Inspect response_headers, readable and private. HTTP can remain 200 in both variants; what changes is permission for another origin to read the body. This is a CORS policy model, not a two-origin browser test. Origin in JSON is a fixture input and does not change the real browser request origin."
+      },
+      "bad_code": "allow_preflight(origin=\"*\")\nreflect_origin_on_private_response()",
+      "fixed_code": "allow = origin in {\"https://app.lab\"}\nif allow:\n    set_header(\"Access-Control-Allow-Origin\", origin)\n    set_header(\"Access-Control-Allow-Credentials\", \"true\")\nset_header(\"Vary\", \"Origin\")",
+      "steps": [
+        {
+          "ar": "حمّل الطلب السليم وشغّله في النسخة المُصلحة. اقرأ النتيجة قبل تغيير أي حقل.",
+          "en": "Load the control and run it in the fixed variant. Read the result before editing a field."
+        },
+        {
+          "ar": "حمّل مثال الحالة في النسخة الضعيفة. قارن الحقول التالية بالطلب السليم: origin. راقب النتيجة قبل الانتقال إلى الإصلاح.",
+          "en": "Load the case example in the vulnerable variant. Compare these fields with the control: origin. Inspect the result before testing the fix."
+        },
+        {
+          "ar": "أرسل المثال نفسه إلى النسخة المُصلحة. تأكد أن العملية غير المسموحة توقفت وأن الطلب السليم ما زال يعمل.",
+          "en": "Send the identical example to the fixed variant. Check that the unwanted operation is prevented while the control still works."
+        }
+      ]
     }
   }
 ]

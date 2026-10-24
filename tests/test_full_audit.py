@@ -44,7 +44,7 @@ class FullHTTPAudit(unittest.TestCase):
         self.assertNotIn('impact',body);self.assertNotIn('checks',body);self.assertNotIn('flag',body)
         return status,body,headers
 
-    def test_all_fifty_real_http_status_body_and_state_contracts(self):
+    def test_all_cases_real_http_status_body_and_state_contracts(self):
         seen=set()
         for case in CATALOG:
             id=case['id'];group=case['group']
@@ -59,6 +59,9 @@ class FullHTTPAudit(unittest.TestCase):
                 elif group=='access':expected=(200,200,403)
                 elif group=='rate':expected=(429 if case['attack']['attempts']>3 else 401,429 if case['normal']['attempts']>3 else 401,429)
                 elif group=='xss':expected=(201,201,201) if id=='xss-stored' else (200,200,200)
+                elif group in {'ssrf','redirect'}:expected=(200,200,403)
+                elif group=='csrf':expected=(200,200,405 if id=='csrf-get' else 415 if id=='csrf-content-type' else 403)
+                elif group=='cors':expected=(200,200,200)
                 else:expected=(200,200,{'code-sqli':200,'code-nosql':422,'code-template':200,'code-redirect':403,'code-ssrf':403}[id])
                 self.assertEqual((weak,normal,fixed),expected)
                 if fixed>=400:
@@ -76,7 +79,7 @@ class FullHTTPAudit(unittest.TestCase):
                 if group=='xss':
                     self.assertIn('preview_url',fixed_body['data']);url=fixed_body['data']['preview_url']
                     r=self.client.open(self.base+url);document=r.read();r.close();self.assertEqual(r.code,200);self.assertIn("sandbox allow-scripts",r.headers['Content-Security-Policy']);self.assertNotIn('allow-same-origin',r.headers['Content-Security-Policy'])
-        self.assertEqual(len(seen),50)
+        self.assertEqual(len(seen),72)
 
     def test_missing_unknown_and_malformed_inputs_for_every_case(self):
         for case in CATALOG:
@@ -112,8 +115,8 @@ class FullHTTPAudit(unittest.TestCase):
         status,body,_=self.call('/academy/api/payment/pay-webhook/fixed',{'event':'settled','signature':'توقيع خاطئ'})
         self.assertEqual(status,401)
         self.assertEqual(self.call('/academy/api/payment/pay-webhook/fixed',{'event':'unknown','signature':'invalid'})[0],400)
-        self.assertEqual(self.call('/academy/api/code/code-redirect/fixed',{'next':'/welcome\r\nLocation: other'})[0],400)
-        _,body,_=self.call('/academy/api/code/code-redirect/vulnerable',{'next':'/unknown'})
+        self.assertEqual(self.call('/academy/api/redirect/code-redirect/fixed',{'next':'/welcome\r\nLocation: other'})[0],400)
+        _,body,_=self.call('/academy/api/redirect/code-redirect/vulnerable',{'next':'/unknown'})
         self.assertFalse(body['data']['external'])
 
     def test_wrong_methods_and_session_isolation(self):
