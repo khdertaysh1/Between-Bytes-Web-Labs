@@ -61,7 +61,7 @@ class ScenarioTests(unittest.TestCase):
         for _ in range(8):a.run('pay-replay','fixed',{'event_id':'evt-demo','repeat':8})
         self.assertEqual(a.states[('pay-replay','fixed')]['used'],1)
         self.assertEqual(a.run('pay-binding','fixed',{'payment':'settled-order100'})['order_state'],'paid')
-        self.assertEqual(a.run('pay-binding','fixed',{'payment':'settled-order1'})['order_state'],'pending')
+        self.assertEqual(a.run('pay-binding','fixed',{'payment':'settled-order1'})['order_state'],'paid')  # rejection must not roll back earlier valid settlement
 
     def test_sql_parser_is_real_but_fixed_owner_predicate_survives(self):
         a=Academy();attack={'query':"' OR 1=1 --"}

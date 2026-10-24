@@ -3,11 +3,14 @@ import argparse
 from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import re
 from pathlib import Path
 import time
 from urllib.parse import parse_qs, urlsplit
 from rooms import RoomSessions, ROOMS
 from academy import Academy, CATALOG as ACADEMY_CATALOG, preview_document as academy_preview
+from academy_http import response as academy_response
+from commerce import snapshot as checkout_snapshot
 from advanced import exercise
 from browser_labs import initialize, authenticated, csrf_write, LabServer, Sidecar
 from training import access_lesson, preview_document, PREVIEW_CSP
@@ -129,7 +132,22 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             parsed = urlsplit(self.path)
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.8','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.9','cases':ACADEMY_CATALOG})
+            if parsed.path in {'/academy/evidence','/academy/resource'}:
+                academy=self.academy()
+                if academy is None:return self.reply(401,{'error':'Start a classroom session'})
+                try:
+                    query=parse_qs(parsed.query,max_num_fields=3)
+                    case=query.get('case',[''])[0];mode=query.get('mode',[''])[0]
+                    if case not in {row['id'] for row in ACADEMY_CATALOG} or mode not in {'vulnerable','fixed'}:raise ValueError('Unknown case or variant')
+                    if parsed.path=='/academy/resource':
+                        if not case.startswith('pay-'):return self.reply(404,{'error':'Resource readback is available for checkout only'})
+                        state=academy.states.setdefault((case,mode),{})
+                        data=checkout_snapshot(state,case[4:])
+                        return self.reply(200,{'data':data},headers={'ETag':'"order100-r'+str(data['order']['revision'])+'"'})
+                    latest=academy.latest.get((case,mode))
+                    return self.reply(200,latest or {'checks':{},'flag':None})
+                except ValueError as error:return self.reply(400,{'error':str(error)})
             if parsed.path.startswith('/academy/preview/'):
                 academy = self.academy()
                 token = parsed.path.rsplit('/',1)[-1]
@@ -180,7 +198,7 @@ def handler_for(labs):
                     return self.reply(200, document.encode(), "text/html; charset=utf-8", PREVIEW_CSP)
                 except ValueError:
                     return self.reply(400, {"error": "Invalid preview"})
-            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/rooms_ui.js": ("rooms_ui.js", "text/javascript; charset=utf-8"), "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"), "/english.js": ("english.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
+            files = {"/": ("academy.html", "text/html; charset=utf-8"), "/foundations": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/rooms_ui.js": ("rooms_ui.js", "text/javascript; charset=utf-8"), "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"), "/english.js": ("english.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
             files.update({'/academy':('academy.html','text/html; charset=utf-8'), '/academy.js':('academy.js','text/javascript; charset=utf-8'), '/academy.css':('academy.css','text/css; charset=utf-8')})
             if self.path in files:
                 name, mime = files[self.path]
@@ -202,15 +220,35 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Cross-origin requests rejected"})
             if not csrf_route and self.headers.get("Sec-Fetch-Site") == "cross-site":
                 return self.reply(403, {"error": "Cross-site requests rejected"})
+            api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if not 0 < size <= 4096:
                     return self.reply(413, {"error": "Body must be 1..4096 bytes"})
-                if self.headers.get_content_type() != "application/x-www-form-urlencoded":
-                    return self.reply(415, {"error": "Use form encoding"})
-                form = parse_qs(self.rfile.read(size).decode("utf-8"), max_num_fields=8)
-            except (ValueError, UnicodeError):
+                content_type=self.headers.get_content_type()
+                if api:
+                    if content_type!='application/json':return self.reply(415,{'error':{'code':'unsupported_media_type','message':'Use application/json'}})
+                    input_data=json.loads(self.rfile.read(size).decode('utf-8'))
+                    form={}
+                else:
+                    if content_type != 'application/x-www-form-urlencoded':return self.reply(415,{'error':'Use form encoding'})
+                    form=parse_qs(self.rfile.read(size).decode('utf-8'),max_num_fields=8)
+            except (ValueError, UnicodeError, RecursionError):
                 return self.reply(400, {"error": "Malformed request"})
+            if api:
+                academy=self.academy()
+                if academy is None:return self.reply(401,{'error':{'code':'session_required','message':'Start a classroom session'}})
+                group,case,mode=api.groups()
+                try:
+                    row=next((row for row in ACADEMY_CATALOG if row['id']==case),None)
+                    if row is None or row['group']!=group:return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
+                    if group=='rate' and isinstance(input_data,dict) and 'source' in input_data and self.headers.get('X-Forwarded-For'):
+                        input_data={**input_data,'source':self.headers['X-Forwarded-For']}
+                    result=academy.run(case,mode,input_data)
+                    status,body,headers=academy_response(academy,case,mode,result)
+                    return self.reply(status,body,headers=headers)
+                except (ValueError,TypeError,RecursionError) as error:
+                    return self.reply(400,{'error':{'code':'invalid_request','message':str(error)[:200]}})
             if self.path in {'/academy/run','/academy/reset'}:
                 academy = self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})

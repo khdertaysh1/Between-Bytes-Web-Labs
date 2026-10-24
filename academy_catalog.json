@@ -20,7 +20,19 @@
     "attack": {
       "price": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "في صفحة شراء دورة Web Security Course، يعرض الكتالوج سعراً قدره 100 دولار. يرسل المتصفح price=10000 بوحدة السنت عند تحديث عرض السعر. أنت لا تغير الكتالوج؛ تختبر هل يتعامل الخادم مع سعر المتصفح كمصدر موثوق.",
+        "en": "The Web Security Course catalog price is $100. The browser sends price=10000 in cents while updating the quote. You are not changing the catalog; you are testing whether the server mistakes a browser value for an authoritative price."
+      },
+      "interpretation": {
+        "ar": "قارن items[0].unit_amount وtotals.amount_due مع سعر الكتالوج. وصول الإجمالي إلى 1 سنت يثبت تلاعباً بعرض السعر؛ لا يثبت تحصيلاً ناجحاً أو شراءً مجانياً.",
+        "en": "Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase."
+      },
+      "bad_code": "unit_price = body[\"price\"]",
+      "fixed_code": "unit_price = catalog[\"SEC-COURSE\"].price"
+    }
   },
   {
     "id": "pay-quantity",
@@ -43,7 +55,19 @@
     "attack": {
       "quantity": -1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "واجهة السلة تسمح بإضافة 1 إلى 10 مقاعد للدورة. جرّب إرسال quantity=-1 مباشرة إلى خدمة التسعير. المتصفح قد يمنع القيمة لكن عقد الخادم هو ما يحدد إن كانت الكمية صالحة.",
+        "en": "The cart permits one to ten course seats. Submit quantity=-1 directly to the quote endpoint. A browser constraint may stop the UI, but only the server contract defines a valid quantity."
+      },
+      "interpretation": {
+        "ar": "الإجمالي السالب خطأ حسابي قابل للانتقال لمراحل لاحقة. النسخة المُصلحة ترجع 422 وتبقي الطلب السابق دون تغيير. أعد quantity=2: يجب أن يُسعّر مقعدان بسعر 200 دولار.",
+        "en": "A negative total is an invalid accounting state that could reach later stages. The fixed endpoint returns 422 without mutating the prior order. Try quantity=2: two seats must cost $200."
+      },
+      "bad_code": "total = unit_price * body[\"quantity\"]",
+      "fixed_code": "require_integer_between(quantity, 1, 10)\ntotal = catalog_price * quantity"
+    }
   },
   {
     "id": "pay-discount",
@@ -66,7 +90,19 @@
     "attack": {
       "discount": 100
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "السلة تدعم خصومات تسويقية؛ الواجهة تعرض النسبة لكنها لا تملك صلاحية منحها. إرسال discount=100 يسأل إن كانت خدمة التسعير تأخذ السياسة التجارية من العميل.",
+        "en": "The cart supports campaign discounts. The UI displays a percentage but cannot authorize it. Posting discount=100 tests whether the pricing service takes discount policy from the client."
+      },
+      "interpretation": {
+        "ar": "تابع totals.discount والإجمالي المستحق. إجمالي صفر في هذه الحالة خطأ تسعير؛ لا توجد دفعة مزود ولا إنشاء استحقاق تحميل من تغيير السعر وحده.",
+        "en": "Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download."
+      },
+      "bad_code": "discount = body[\"discount\"]",
+      "fixed_code": "discount = active_campaign.allowed_discount(customer)"
+    }
   },
   {
     "id": "pay-coupon-reuse",
@@ -91,7 +127,19 @@
       "coupon": "WELCOME",
       "repeat": 2
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "قسيمة WELCOME تمنح خصماً قدره 20 دولاراً مرة واحدة لكل عميل. كرر استهلاك القسيمة في الجولة نفسها. الحقل repeat يرسل عدداً مقيداً من العمليات المحلية ليمكنك رؤية أثر تكرار الطلبات.",
+        "en": "WELCOME grants a $20 discount once per customer. Redeem it repeatedly within one round. The bounded repeat field schedules multiple local operations so you can inspect repeated-request effects."
+      },
+      "interpretation": {
+        "ar": "كل استهلاك يظهر كمعاملة coupon_redeemed. في الضعيفة يستمر العداد والخصم بالزيادة. في المُصلحة يبقى redemptions=1 وتبقى الفاتورة 80 دولاراً، حتى لو رجع الطلب المتكرر 200.",
+        "en": "Each redemption creates a coupon_redeemed transaction. The vulnerable ledger keeps increasing both the count and discount. The fix keeps redemptions=1 and the quote at $80, even when a repeated request returns 200."
+      },
+      "bad_code": "apply_discount(code)  # no redemption record",
+      "fixed_code": "atomic: redeem_once(customer_id, coupon_id)"
+    }
   },
   {
     "id": "pay-currency",
@@ -114,7 +162,19 @@
     "attack": {
       "currency": "JPY"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "سعر الطلب مسجل USD 100.00. لدى المعالج سجلات تسوية بعملة ومبلغ، وليس رقم مبلغ وحده. هنا تختبر مقارنة الرقم 10000 دون مقارنة العملة عند تمرير JPY.",
+        "en": "The order is USD 100.00. Processor settlement contains both amount and currency, not just a number. This case tests a numeric amount comparison that omits currency when JPY is supplied."
+      },
+      "interpretation": {
+        "ar": "في الضعيفة افحص معاملة fulfilment_released وعملة المعالج داخل تفاصيلها. لا تقارن وحدات JPY بوحدات USD. في المُصلحة يجب أن تحصل على 409 currency_mismatch ولا يزداد revision.",
+        "en": "In the vulnerable variant inspect fulfilment_released and its provider currency. Do not equate JPY units with USD units. The fix must return 409 currency_mismatch without advancing revision."
+      },
+      "bad_code": "if payment.amount == order.amount: fulfil()",
+      "fixed_code": "require(payment.currency == order.currency)\nrequire(payment.amount == order.amount)"
+    }
   },
   {
     "id": "pay-rounding",
@@ -137,7 +197,19 @@
     "attack": {
       "amount": "0.004"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "عقد واجهة قديم يستقبل amount كسلسلة عشرية بينما المحاسبة تستخدم السنت. القيمة 0.004 تصبح صفراً عند تحويلها بطريقة الاقتطاع إلى عدد صحيح.",
+        "en": "A legacy interface accepts amount as a decimal string while accounting uses cents. Truncating 0.004 to integer minor units produces zero."
+      },
+      "interpretation": {
+        "ar": "الاختبار يقارن amount_due مع سعر الكتالوج 10000. استخدم كذلك 99.999 لفهم الاقتطاع. الحل ليس إضافة round عشوائياً؛ يجب منع العميل من تحديد سعر المنتج وربط كل واجهة بوحدة نقدية معلنة.",
+        "en": "Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit."
+      },
+      "bad_code": "amount_minor = int(Decimal(body[\"amount\"]) * 100)",
+      "fixed_code": "amount_minor = catalog_price_minor  # integer contract"
+    }
   },
   {
     "id": "pay-total",
@@ -160,7 +232,19 @@
     "attack": {
       "total": 0
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "المتصفح يجمع بنود السلة ويعرض total قبل تأكيد الطلب. هذا الرقم مناسب للعرض فقط. خدمة الخادم يجب أن تجمع البنود من أسعارها وكمياتها ورسومها الموثوقة بدلاً من حفظ الرقم المرسل.",
+        "en": "The browser adds cart lines and displays total before confirmation. This number is presentation data. The server must compute line prices, quantities and trusted fees rather than persist the posted sum."
+      },
+      "interpretation": {
+        "ar": "غير total إلى صفر ثم اقرأ الطلب من جديد. تغيّر totals.amount_due مع بقاء بند الدورة بقيمة 10000 يثبت عدم اتساق داخل نفس الطلب. لا تعتبر اختلاف واجهة العرض وحده دليلاً كافياً.",
+        "en": "Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence."
+      },
+      "bad_code": "order.total = body[\"total\"]",
+      "fixed_code": "order.total = sum(trusted_lines) + shipping + tax - discount"
+    }
   },
   {
     "id": "pay-shipping",
@@ -183,7 +267,19 @@
     "attack": {
       "shipping": 0
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "سلة فيها تكلفة توصيل ثابتة 10 دولارات. الشحن لا يأتي من خاصية مخفية في الصفحة بل من خدمة التسعير وطريقة التوصيل المختارة. اختبر حذف الرسوم بإرسال shipping=0.",
+        "en": "This cart has a fixed $10 delivery charge. Shipping should come from pricing policy and the selected delivery method, not a hidden form field. Test removal with shipping=0."
+      },
+      "interpretation": {
+        "ar": "الدليل هو إجمالي 100 دولار بدل 110 مع بقاء خدمة التوصيل نفسها. المُصلحة تحتسب الرسم مجدداً. لا تطبق هذه القاعدة بشكل أعمى على منتجات رقمية أو عروض شحن مجاني.",
+        "en": "Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix recalculates the fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers."
+      },
+      "bad_code": "shipping = body[\"shipping\"]",
+      "fixed_code": "shipping = delivery_policy.quote(selected_method)"
+    }
   },
   {
     "id": "pay-tax",
@@ -206,7 +302,19 @@
     "attack": {
       "tax": 0
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "هذه الحالة تفترض ضريبة محلية ثابتة 10 دولارات للتبسيط. العميل قد يرسل قيمة عرض لكنه لا يقرر إن كانت العملية معفاة. يتم اختبار tax=0 على الطلب نفسه.",
+        "en": "This exercise uses a fixed $10 tax to keep the policy inspectable. A client may submit a displayed value but cannot decide whether the transaction is exempt. Test tax=0 against the same order."
+      },
+      "interpretation": {
+        "ar": "افحص totals.tax والإجمالي. التطبيق الحقيقي يحتاج حساب ضريبة حسب الولاية والمنتج والإعفاءات الموثقة؛ هذه الحالة لا تنفذ نظام ضرائب قانونياً كاملاً.",
+        "en": "Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system."
+      },
+      "bad_code": "tax = body[\"tax\"]",
+      "fixed_code": "tax = tax_policy.calculate(trusted_order_context)"
+    }
   },
   {
     "id": "pay-status",
@@ -231,7 +339,19 @@
       "status": "paid",
       "receipt": "pending-order100"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "بعد العودة من صفحة الدفع، يرسل المتصفح حالة مرئية paid ومعرف إيصال. في الجولة الجديدة الإيصال pending-order100 ما زال قيد الانتظار لدى سجل المزود المحلي. الخلل هو ترقية الطلب اعتماداً على الحالة القادمة من المتصفح.",
+        "en": "After returning from checkout, the browser posts a visible paid status and receipt reference. In a fresh round pending-order100 is still pending in the local provider ledger. The flaw promotes the order based on browser state."
+      },
+      "interpretation": {
+        "ar": "ابدأ بالمثال غير المسدد ثم اقرأ الطلب: الضعيفة قد تعطي status=paid واستحقاق تحميل رغم captured_amount=0. المُصلحة ترجع 409. بعدها اختبر الإيصال المسدد: الطلب يدفع فعلياً داخل النموذج ويمنح استحقاقاً واحداً.",
+        "en": "Start with the unsettled example, then read the order: the vulnerable version can show paid and one download while captured_amount=0. The fix returns 409. Then use the settled receipt: the model records capture and grants one entitlement."
+      },
+      "bad_code": "if body[\"status\"] == \"paid\": release_download()",
+      "fixed_code": "receipt = provider_ledger.lookup(receipt_id)\nrequire(receipt.status == \"settled\")"
+    }
   },
   {
     "id": "pay-webhook",
@@ -250,13 +370,25 @@
     },
     "normal": {
       "event": "settled",
-      "signature": "DEMO_VALID_SIGNATURE"
+      "signature": "53ad32f960cb08a9887152a7542d36f80df5b92d831e9af5b6e3c29f459ff812"
     },
     "attack": {
       "event": "settled",
       "signature": "invalid"
     },
-    "level": "advanced"
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "خدمة الدفع تستقبل حدث settled من مزود محلي تجريبي. النسخة الجديدة تتحقق فعلياً من HMAC-SHA256 لحدث معياري محفوظ على الخادم. المثال السليم يحمل توقيعاً صحيحاً لهذا الحدث فقط؛ تغيير التوقيع إلى invalid يمثل إشعاراً غير موثوق.",
+        "en": "The payment service receives a settled event from a local provider fixture. The new implementation actually checks HMAC-SHA256 over a server-defined canonical event. The control includes a valid signature for that event only; invalid represents an untrusted notification."
+      },
+      "interpretation": {
+        "ar": "في الضعيفة قد ينشأ استحقاق مع صفر مبلغ محصل. في المُصلحة التوقيع الخاطئ يعطي 401 ولا يغير السجل. هذا عقد مختبر ثابت وليس بروتوكول Stripe أو Adyen؛ في الإنتاج يُتحقق من الجسم الخام والطابع الزمني وإعادة الإرسال وفق عقد المزود.",
+        "en": "The vulnerable route can grant an entitlement with zero captured funds. The fix returns 401 for a bad signature without changing the ledger. This is a fixed lab contract, not Stripe or Adyen: production verification must follow the provider’s raw-body, timestamp and replay contract."
+      },
+      "bad_code": "if event == \"settled\": fulfil(order)",
+      "fixed_code": "require_constant_time_hmac(canonical_event, signature)\napply_verified_event_once()"
+    }
   },
   {
     "id": "pay-binding",
@@ -279,7 +411,19 @@
     "attack": {
       "payment": "settled-order1"
     },
-    "level": "advanced"
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "عندك طلب order100 بسعر 100 دولار وإيصال settled-order1 صحيح لكنه لطلب ثان بقيمة دولار واحد. وجود إيصال ناجح لا يكفي إن لم يرتبط بالطلب الجاري.",
+        "en": "You have order100 worth $100 and a genuine settled-order1 receipt for a different $1 order. A successful receipt is insufficient unless it belongs to the current order."
+      },
+      "interpretation": {
+        "ar": "من جولة جديدة قارن order.id مع payment_order، ثم captured_amount مع amount_due. الضعيفة تمنح التحميل مقابل دولار واحد. المُصلحة تعطي 409 ولا ترفع revision. أرسل settled-order100 بعدها لتثبت أن الدفع الصحيح ما زال يعمل.",
+        "en": "From a fresh round compare order.id with payment_order, then captured_amount with amount_due. The vulnerable implementation grants a download for $1. The fix returns 409 without increasing revision. Submit settled-order100 afterward to prove legitimate settlement still works."
+      },
+      "bad_code": "if receipt.status == \"settled\": fulfil(order)",
+      "fixed_code": "require(receipt.order_id == order.id)\nrequire(receipt.amount == order.total and receipt.currency == order.currency)"
+    }
   },
   {
     "id": "pay-replay",
@@ -304,7 +448,19 @@
       "event_id": "evt-demo",
       "repeat": 2
     },
-    "level": "advanced"
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "إشعار evt-demo يفتح تحميل الدورة مرة واحدة. إعادة الطلب قد تكون تصرفاً طبيعياً من المزود بسبب انقطاع الشبكة؛ المطلوب معالجة آمنة للتكرار، لا رفض كل إشعار مكرر.",
+        "en": "Event evt-demo grants one course download. Providers legitimately retry notifications after network failures. The requirement is idempotent processing rather than rejecting every repeated notification."
+      },
+      "interpretation": {
+        "ar": "كرر نفس event_id وافحص entitlements.downloads وسجل entitlement_granted. المُصلحة قد تعيد 200 مع idempotent_replay=true لكن لا تنشئ معاملة جديدة أو استحقاقاً ثانياً.",
+        "en": "Replay the same event_id and inspect entitlements.downloads and entitlement_granted entries. The fix can return 200 with idempotent_replay=true while creating neither another transaction nor a second entitlement."
+      },
+      "bad_code": "on_event(): entitlements += 1",
+      "fixed_code": "atomic: if event_id not in processed: grant_and_record(event_id)"
+    }
   },
   {
     "id": "pay-refund",
@@ -327,7 +483,19 @@
     "attack": {
       "refund": 20000
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "طلب مدفوع ومحصل بقيمة 100 دولار. أنشئ استرداداً 10 دولارات ثم حاول استرداد 200 دولار. المطلوب حماية مجموع الاستردادات، وليس فحص كل طلب منفرداً فقط.",
+        "en": "The order has $100 captured. Refund $10, then request $200. Protection must cover cumulative refunds, not just validate each request independently."
+      },
+      "interpretation": {
+        "ar": "راقب refunded_amount ومعاملات refund_created. الضعيفة تسمح بأن يتجاوز المسترد المحصل. المُصلحة تعيد 409 وتبقي revision والمبلغ كما هما؛ إعادة طلبات صغيرة لا يجوز أن تتجاوز الرصيد المتبقي.",
+        "en": "Inspect refunded_amount and refund_created entries. The vulnerable path lets refunds exceed capture. The fix returns 409 while preserving revision and amount; repeated small refunds must not exceed the remaining balance either."
+      },
+      "bad_code": "create_refund(requested_amount)",
+      "fixed_code": "atomic: require(refunded + requested <= captured)\ncreate_refund_and_update_balance()"
+    }
   },
   {
     "id": "pay-gift",
@@ -352,7 +520,19 @@
       "spend": 6000,
       "repeat": 2
     },
-    "level": "advanced"
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "بطاقة هدية رصيدها 100 دولار وعاملان يحاول كل منهما صرف 60 دولاراً. لمحاكاة السباق بشكل قابل للإعادة، تقرأ الضعيفة نسخة الرصيد نفسها للعاملين قبل الخصم.",
+        "en": "A gift card holds $100 and two workers each try to spend $60. To reproduce the concurrency error deterministically, the vulnerable schedule gives both workers the same pre-debit balance."
+      },
+      "interpretation": {
+        "ar": "النتيجة غير المسموحة: رصيد -20 دولاراً ومعاملتا gift_debited. المُصلحة تسمح بعملية واحدة ويبقى 40 دولاراً. هذا ترتيب زمني حتمي وليس اختبار قفل قاعدة بيانات أو إثبات مقاومة للتزامن في خادم موزع.",
+        "en": "The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers."
+      },
+      "bad_code": "balance_snapshot = balance\nfor worker: if snapshot >= spend: debit(spend)",
+      "fixed_code": "atomic: if current_balance >= spend: decrement(spend)"
+    }
   },
   {
     "id": "pay-trial",
@@ -377,7 +557,19 @@
       "plan": "premium",
       "purchase": "trial"
     },
-    "level": "advanced"
+    "level": "advanced",
+    "lesson": {
+      "story": {
+        "ar": "عميل استهلك تجربة basic ثم يطلب تجربة premium. إذا خزنت الأهلية لكل خطة على حدة، يتحول تغيير الخطة إلى طريقة للحصول على تجربة ثانية لنفس الهوية.",
+        "en": "A customer has consumed a basic trial and requests a premium trial. If eligibility is tracked per plan, changing plans becomes a route to a second trial for the same identity."
+      },
+      "interpretation": {
+        "ar": "راقب subscriptions وحالة trialing، ولا تعتبر ظهور زر تجربة دليلاً. المُصلحة تمنع التجربة الثانية بـ409 لكنها تسمح باشتراك paid. تعريف الهوية المشتركة لوسائل الدفع والضرائب يحتاج سياسة منتج خارج هذا النموذج.",
+        "en": "Inspect subscriptions and trialing status; a visible trial button is not evidence. The fix returns 409 for the second trial but permits a paid subscription. Shared payment-identity and billing policy require product decisions beyond this model."
+      },
+      "bad_code": "eligible = not trials_used[customer, plan]",
+      "fixed_code": "eligible = not trials_used[customer, product_family]"
+    }
   },
   {
     "id": "acl-read",
@@ -400,7 +592,19 @@
     "attack": {
       "object": "b-1"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "صفحة الفواتير تفتح مستند alice بمعرف a-1. استبدل المعرف بـb-1 دون تغيير الجلسة؛ المستند يعود إلى bob في المؤسسة نفسها.",
+        "en": "The invoice page opens Alice’s a-1 document. Substitute b-1 while keeping the same session; Bob owns it within the same tenant."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "GET invoice by id → return document",
+      "fixed_code": "SELECT ... WHERE id=? AND owner_id=session.user_id"
+    }
   },
   {
     "id": "acl-write",
@@ -425,7 +629,19 @@
       "object": "b-1",
       "note": "updated"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة تعديل ملاحظة الفاتورة تستقبل object وnote. جرّب تغيير ملاحظة b-1 الخاص بـbob ثم راجع المستند الناتج. اختلاف القراءة عن التعديل يحتاج تفويضاً لكل عملية.",
+        "en": "The invoice-note endpoint accepts object and note. Change Bob’s b-1 note and inspect the updated document. Read and write are distinct operations and require separate permissions."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "document.note = body.note",
+      "fixed_code": "require(can_write(session.actor, document))\ndocument.note = body.note"
+    }
   },
   {
     "id": "acl-delete",
@@ -448,7 +664,19 @@
     "attack": {
       "object": "b-1"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة حذف مستند يجب أن تتحقق من صلاحية الفاعل قبل إزالة المورد. إرسال b-1 ليس مجرد قراءة؛ الحذف يزيله من بيانات الجولة وتصبح محاولة تكراره 404.",
+        "en": "A deletion endpoint must authorize the actor before removing an object. Sending b-1 is destructive within the exercise state: the resource disappears and a repeated deletion returns 404."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "delete_by_id(body.object)",
+      "fixed_code": "require(can_delete(actor, document))\ndelete_by_id(document.id)"
+    }
   },
   {
     "id": "acl-nested",
@@ -473,7 +701,19 @@
       "parent": "alice",
       "child": "b-1"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "مسار مثل /customers/alice/invoices/:child لا يضمن أن child تابع لـalice. اختبر أباً مسموحاً وابناً يخص bob: فحص الأب وحده يترك المورد الفرعي مكشوفاً.",
+        "en": "A route such as /customers/alice/invoices/:child does not guarantee that child belongs to Alice. Use an allowed parent with Bob’s child: parent-only authorization leaves the nested resource exposed."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "authorize(parent); load(child)",
+      "fixed_code": "child = load_where(id=child_id, parent=authorized_parent)"
+    }
   },
   {
     "id": "acl-tenant",
@@ -498,7 +738,19 @@
       "tenant": "south",
       "object": "c-1"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "نظام B2B يثبت مؤسسة alice على north في الجلسة. العميل يرسل tenant=south مع c-1. تغيير حقل tenant لا ينقل الجلسة ولا يمنح إذناً في مؤسسة أخرى.",
+        "en": "The B2B application fixes Alice’s tenant as north in the session. The client posts tenant=south and c-1. A tenant field cannot move the session into another organization."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "lookup(body.tenant, body.object)",
+      "fixed_code": "lookup(session.tenant_id, authorized_object_id)"
+    }
   },
   {
     "id": "acl-batch",
@@ -526,7 +778,19 @@
         "b-1"
       ]
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة تصدير عدة مستندات تستقبل قائمة. أضف b-1 بعد a-1 المسموح: تفويض أول عنصر أو تفويض العملية إجمالاً لا يغطي بقية العناصر.",
+        "en": "The export service accepts a list of document IDs. Put Bob’s b-1 after the allowed a-1: authorizing the first item or the endpoint itself does not authorize every returned item."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "authorize(ids[0]); return load_all(ids)",
+      "fixed_code": "authorize_every_item_or_reject_batch(ids, actor)"
+    }
   },
   {
     "id": "acl-export",
@@ -549,7 +813,19 @@
     "attack": {
       "job": "export-bob"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "وظيفة تصدير خلفية أنشأها bob تنتج ملف تقرير. معرفة معرف export-bob لا يجب أن تمنح alice نتيجة المهمة حتى لو كان مسار التصدير متاحاً لها.",
+        "en": "A background export job created by Bob produces a report. Knowing export-bob must not grant Alice its output even when she can use the export endpoint."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "return jobs[job_id].result",
+      "fixed_code": "require(job.owner_id == session.user_id)\nreturn job.result"
+    }
   },
   {
     "id": "acl-download",
@@ -572,7 +848,19 @@
     "attack": {
       "file": "file-bob"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "روابط تنزيل الفواتير تستخدم مراجع file-alice وfile-bob. عشوائية المعرف أو صعوبة تخمينه ليست بديلاً عن فحص الصلاحية عند تقديم الملف.",
+        "en": "Invoice downloads use references file-alice and file-bob. Random or hard-to-guess references cannot replace authorization when the file is served."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "return storage[file_id]",
+      "fixed_code": "require(can_download(actor, file_metadata))\nstream_file(file_metadata)"
+    }
   },
   {
     "id": "acl-role",
@@ -597,7 +885,19 @@
       "role": "admin",
       "action": "admin"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "جلسة alice بدور viewer. واجهة الإدارة ترسل action=admin وrole=admin؛ الخلل هو أخذ الدور المعلن من الطلب بدلاً من سجل المستخدم الموثوق.",
+        "en": "Alice’s session has a viewer role. A client posts action=admin and role=admin; the defect reads the claimed role from the request instead of trusted user state."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "if body.role == \"admin\": show_admin()",
+      "fixed_code": "if session.actor.role == \"admin\": show_admin()"
+    }
   },
   {
     "id": "acl-mass",
@@ -621,7 +921,19 @@
       "display_name": "Alice",
       "is_admin": true
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "صفحة الملف الشخصي مصممة لتعديل display_name. أضف is_admin=true إلى JSON؛ ربط جميع حقول الجسم بكائن المستخدم قد يكتب حقلاً لم تعرضه الواجهة أصلاً.",
+        "en": "The profile form should edit display_name. Add is_admin=true to JSON: binding every request field to the user object may write a protected field the UI never displayed."
+      },
+      "interpretation": {
+        "ar": "ثبت أن الفاعل ما زال alice، ثم افحص مالك المورد أو التغيير في بيانات الجولة. نجاح HTTP وحده غير كافٍ. المُصلحة يجب أن تمنع المورد غير المسموح وتحافظ على العملية السليمة على موارد alice.",
+        "en": "Keep the actor as Alice, then inspect the returned owner or persisted change. HTTP success alone is insufficient. The fix must deny the unauthorized resource while preserving legitimate operations on Alice’s resources."
+      },
+      "bad_code": "profile.update(request.json)",
+      "fixed_code": "profile.update(allow_fields(request.json, [\"display_name\"]))"
+    }
   },
   {
     "id": "rate-xff",
@@ -648,7 +960,19 @@
       "source": "192.0.2.2",
       "attempts": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "العداد يأخذ X-Forwarded-For من عميل غير موثوق. بعد استنفاد سلة 192.0.2.1 غيّر الترويسة إلى 192.0.2.2؛ تريد معرفة هل يتغير مصدر الحد دون أن يتغير الحساب.",
+        "en": "The limiter trusts client-supplied X-Forwarded-For. After exhausting 192.0.2.1, send 192.0.2.2. The question is whether the budget identity changes without changing the account."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = header[\"X-Forwarded-For\"]",
+      "fixed_code": "bucket = normalized_account_id; trusted_peer_policy()"
+    }
   },
   {
     "id": "rate-ip-pool",
@@ -675,7 +999,19 @@
       "source": "192.0.2.2",
       "attempts": 4
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "حتى لو كان كل عنوان شبكة موثوقاً، يمكن لمصادر متعددة أن تستهدف هوية واحدة. هذه الحالة تجمع المحاولات للحساب نفسه عبر تسميات مصدر محلية دون تشغيل بروكسيات.",
+        "en": "Even trustworthy network addresses can distribute attempts against one identity. This case counts the same account across local source labels without operating proxies."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "limit_by(source_ip)",
+      "fixed_code": "limit_by(account_id) and limit_by(trusted_source)"
+    }
   },
   {
     "id": "rate-ipv6",
@@ -702,7 +1038,19 @@
       "source": "2001:0db8:0:0:0:0:0:1",
       "attempts": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "2001:db8::1 و2001:0db8:0:0:0:0:0:1 تمثيلان للعنوان نفسه. إن كان العداد يقارن النص، تظهر سلتان؛ طبّع العنوان وهوية الحساب قبل بناء المفاتيح.",
+        "en": "2001:db8::1 and 2001:0db8:0:0:0:0:0:1 represent the same address. Raw-string buckets split the identity; canonicalize addresses and account identity before constructing keys."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = raw_address_string",
+      "fixed_code": "bucket = canonical_account_id; canonicalize_ip(source)"
+    }
   },
   {
     "id": "rate-case",
@@ -727,7 +1075,19 @@
       "account": "ALICE@example.test",
       "attempts": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "تسجيل الدخول في بيانات هذه الحالة لا يفرق بين أحرف البريد، لكن العداد الضعيف يفرق. أرسل alice@example.test ثم ALICE@example.test بعد استنفاد الميزانية.",
+        "en": "Authentication in this case treats email case-insensitively, but the vulnerable limiter does not. Exhaust alice@example.test, then use ALICE@example.test."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = raw_email",
+      "fixed_code": "bucket = resolved_internal_account_id"
+    }
   },
   {
     "id": "rate-route",
@@ -754,7 +1114,19 @@
       "route": "legacy",
       "attempts": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "مسارا login وlegacy ينفذان التحقق نفسه لكن عداديهما منفصلان. انتهاء ميزانية واجهة حديثة لا يجب أن يسمح بمحاولات إضافية عبر الواجهة القديمة.",
+        "en": "The login and legacy routes perform the same operation but keep separate counters. Exhausting the current route must not expose a fresh budget on the legacy route."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = route + account",
+      "fixed_code": "bucket = operation_family + internal_account_id"
+    }
   },
   {
     "id": "rate-reset",
@@ -781,7 +1153,19 @@
       "challenge": "two",
       "attempts": 1
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "واجهة إصدار تحد جديد تبدّل challenge من one إلى two. إذا ارتبط الحد بعمر التحدي وحده، يمكن أن يُنسى مجموع المحاولات على الحساب.",
+        "en": "Issuing a challenge changes its ID from one to two. A budget bound only to the challenge lifetime can forget the account’s cumulative attempts."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = challenge_id",
+      "fixed_code": "bucket = internal_account_id; also_limit_each_challenge()"
+    }
   },
   {
     "id": "rate-window",
@@ -806,7 +1190,19 @@
       "time": 60,
       "attempts": 3
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "ثلاث محاولات عند الثانية 59 وثلاث عند 60 تتجاوز حد ثلاث محاولات خلال 60 ثانية رغم احترام كل دقيقة ثابتة. الساعة حقل مختبري صريح لتكرار الحدث دون انتظار.",
+        "en": "Three attempts at second 59 and three at 60 exceed three per rolling 60 seconds while respecting fixed minute buckets. An explicit lab clock makes the boundary reproducible without waiting."
+      },
+      "interpretation": {
+        "ar": "نفّذ طلب البداية في كل نسخة لاستهلاك حد 3، ثم المثال الثاني. كل المحاولات ذات بيانات دخول خاطئة: 401 يعني أن الطلب وصل للتحقق و429 يعني أنه منع بالعداد. لا تفسر 401 كنجاح دخول.",
+        "en": "Exhaust the initial budget separately in each variant, then send the second example. Every credential attempt fails: 401 means verification was reached, while 429 means the limiter blocked it. Never interpret 401 as successful authentication."
+      },
+      "bad_code": "bucket = int(server_time / 60)",
+      "fixed_code": "count = attempts_in_last_60_seconds(server_clock)"
+    }
   },
   {
     "id": "xss-html",
@@ -867,7 +1263,19 @@
           "en": "Percent encoding is not automatically decoded by HTML parsing."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "المدخل يظهر داخل نص صفحة نتائج البحث بين وسمين. عند العرض الخام، يتحول <img> إلى عنصر وonerror إلى معالج حدث؛ النص المطابق داخل JSON أو كيان HTML ليس التنفيذ نفسه.",
+        "en": "Input appears between tags in a search results page. Raw rendering creates an img node and an onerror handler; matching text in JSON or an HTML entity is not equivalent to execution."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "output = \"<div>\" + value + \"</div>\"",
+      "fixed_code": "output = \"<div>\" + html_escape(value) + \"</div>\""
+    }
   },
   {
     "id": "xss-attr-double",
@@ -928,7 +1336,19 @@
           "en": "Quote entities are data, not attribute-syntax delimiters."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "الصفحة تعيد ملء حقل بحث داخل value=\"...\". يجب الخروج من الاقتباس المزدوج أولاً؛ حمولة نص HTML وحدها قد تبقى مجرد قيمة للحقل.",
+        "en": "The page repopulates a search input inside value=\"...\". A payload must first close the double quote; ordinary HTML markup may otherwise remain an attribute value."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "html = '<input value=\"' + value + '\">'",
+      "fixed_code": "html = '<input value=\"' + escape_attribute(value) + '\">'"
+    }
   },
   {
     "id": "xss-attr-single",
@@ -989,7 +1409,19 @@
           "en": "An encoded quote stays inside the attribute value."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "القيمة منعكسة داخل خاصية مقتبسة بمفرد. حماية الاقتباس المزدوج فقط لا تغلق هذا المسار، لكن تمثيل الاقتباس ككيان HTML ليس فاصل خاصية عند التحليل.",
+        "en": "The reflection sits inside a single-quoted attribute. Escaping only double quotes leaves this boundary open, while a quote entity is not an attribute delimiter during parsing."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "html = \"<input value='\" + value + \"'>\"",
+      "fixed_code": "html = quote_and_escape_attribute(value)"
+    }
   },
   {
     "id": "xss-attr-bare",
@@ -1050,7 +1482,19 @@
           "en": "A control does not introduce a new attribute or node."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "قالب قديم يضع value دون اقتباس. المسافة أو > يمكن أن ينهي القيمة؛ الاعتماد على منع علامة اقتباس معينة لا يحمي سياقاً غير مقتبس.",
+        "en": "A legacy template emits an unquoted value attribute. Whitespace or > can terminate it; blocking a particular quote cannot protect an unquoted context."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "html = \"<input value=\" + value + \">\"",
+      "fixed_code": "html = '<input value=\"' + escape_attribute(value) + '\">'"
+    }
   },
   {
     "id": "xss-script",
@@ -1111,7 +1555,19 @@
           "en": "This sink does not URL-decode before emitting the JavaScript string."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "القالب يضع عبارة البحث داخل سلسلة JavaScript بين مفردتين. محرف واحد يغلق السلسلة ويغيّر من بيانات إلى تعليمة؛ ترميز HTML ليس عقد ترميز JavaScript.",
+        "en": "A template embeds the search term in a single-quoted JavaScript string. A delimiter can switch data into a statement; HTML escaping is not a JavaScript encoding contract."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "script = \"const input='\" + value + \"';\"",
+      "fixed_code": "script = \"const input=\" + script_safe_json(value)"
+    }
   },
   {
     "id": "xss-template",
@@ -1172,7 +1628,19 @@
           "en": "Percent-encoded text remains data in this context."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "الواجهة تولّد template literal باستخدام backticks. داخل هذا السياق، ${...} يطلب تقييم تعبير حتى لو لم يحتج حمولة وسوم HTML.",
+        "en": "The UI generates a backtick template literal. In this context ${...} evaluates an expression without requiring an HTML-tag payload."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "script = \"const input=`\" + value + \"`;\"",
+      "fixed_code": "script = \"const input=\" + script_safe_json(value)"
+    }
   },
   {
     "id": "xss-url",
@@ -1233,7 +1701,19 @@
           "en": "Inspect href in the evidence; this is a scheme-policy check, not execution proof inside the frame."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "صفحة العودة تعرض رابطاً من مدخل المستخدم. HTML escaping يحمي بنية الخاصية لكنه لا يقرر إن كان مخطط javascript مسموحاً. داخل هذا الإطار نفحص الرابط وسياسة المخطط دون ادعاء تنفيذ الرابط.",
+        "en": "A return page builds a link from input. HTML escaping protects attribute syntax but does not decide whether javascript is an allowed scheme. This sandbox checks the resulting link policy without claiming execution."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "href = html_escape(value)",
+      "fixed_code": "href = allow_local_path(parse_url(value))"
+    }
   },
   {
     "id": "xss-dom-fragment",
@@ -1294,7 +1774,19 @@
           "en": "A script element inserted by innerHTML does not execute automatically; innerHTML is still unsafe."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "صفحة معاينة تقرأ الجزء بعد # من رابطها. هذا الجزء لا يرسل في HTTP، لكن JavaScript يقرأه ويفك ترميزه ثم يضعه في innerHTML. الدليل هنا في DOM والمتصفح، لا في انعكاس استجابة الخادم.",
+        "en": "A preview reads the part after # in its own URL. The fragment is not sent in HTTP, but client JavaScript decodes it into innerHTML. Evidence belongs in the DOM and browser, not a server-response reflection."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "output.innerHTML = decodeURIComponent(location.hash.slice(1))",
+      "fixed_code": "output.textContent = decodeURIComponent(location.hash.slice(1))"
+    }
   },
   {
     "id": "xss-dom-query",
@@ -1355,7 +1847,19 @@
           "en": "A script element alone is not execution proof for innerHTML."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "صفحة المعاينة تأخذ معامل search من رابطها، وليس q. البحث عن اسم معامل واحد يفوّت تدفقات البيانات الأخرى؛ تتبّع المصدر URLSearchParams حتى نقطة innerHTML.",
+        "en": "The preview reads a search parameter rather than q. Looking for one parameter name misses other data flows; trace URLSearchParams to the innerHTML sink."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "output.innerHTML = new URLSearchParams(location.search).get(\"search\")",
+      "fixed_code": "output.textContent = new URLSearchParams(location.search).get(\"search\")"
+    }
   },
   {
     "id": "xss-stored",
@@ -1416,7 +1920,19 @@
           "en": "Entity text renders as text without an additional decoding stage in this case."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "صاحب حساب يكتب تعليقاً يحفظه الخادم ضمن الجولة. لاحقاً طلب GET مستقل يعرض التعليق. نقطة الخلل هي العرض غير المرمز، لا مجرد قبول النص في طلب الحفظ.",
+        "en": "A customer posts a comment stored in the server round. A later, separate GET renders it. The flaw is unescaped rendering, not merely accepting text at the storage endpoint."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "store(comment); later_render_as_html(comment)",
+      "fixed_code": "store(comment); escape_at_each_output_sink(comment)"
+    }
   },
   {
     "id": "xss-entity",
@@ -1477,7 +1993,19 @@
           "en": "An extra entity layer remains text after one decode followed by HTML parsing."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "سلسلة المعالجة تفك كيانات HTML قبل وضع الناتج في innerHTML. حمولة &lt;...&gt; تتحول إلى وسوم بعد فك واحد، بينما طبقة إضافية قد تبقى نصاً.",
+        "en": "The processing chain decodes HTML entities before assigning to innerHTML. An &lt;...&gt; input becomes markup after decoding, while an extra encoding layer may remain text."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "output.innerHTML = decode_entities(input)",
+      "fixed_code": "output.textContent = decode_entities(input)"
+    }
   },
   {
     "id": "xss-double-url",
@@ -1538,7 +2066,19 @@
           "en": "A triple-encoded input remains encoded after two decoding passes."
         }
       }
-    ]
+    ],
+    "lesson": {
+      "story": {
+        "ar": "خدمتان في المسار تفكان URL على التوالي. %253C تصبح %3C ثم <، لذلك فحص النص قبل اكتمال التحويل لا يصف ما يصل إلى نقطة الإدراج.",
+        "en": "Two stages URL-decode in sequence: %253C becomes %3C, then <. Inspecting text before the full transformation does not describe what reaches the sink."
+      },
+      "interpretation": {
+        "ar": "سجّل المصدر، وعدد مرات فك الترميز، وسياق الإدراج، ثم الدليل في الإطار. انعكاس النص أو ظهور الوسم وحده ليس إثبات تنفيذ. جرّب المقارنة السلبية واشرح لماذا بقيت خاملة في هذا السياق بالذات.",
+        "en": "Record the source, decoding stages, output context and frame evidence. Reflection or a visible tag alone is not execution proof. Try the negative control and explain why it remains inert in this particular sink."
+      },
+      "bad_code": "output.innerHTML = decode_url(decode_url(input))",
+      "fixed_code": "output.textContent = decode_according_to_contract(input)"
+    }
   },
   {
     "id": "code-sqli",
@@ -1561,7 +2101,19 @@
     "attack": {
       "query": "' OR 1=1 --"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة بحث في ملاحظات alice تضيف query إلى WHERE owner=alice AND note LIKE ... بالنص. SQLite حقيقية في الذاكرة: تعديل بنية التعبير قد يُرجع ملاحظة bob رغم أن هوية الجلسة لم تتغير.",
+        "en": "Alice’s note search concatenates query into WHERE owner=alice AND note LIKE .... A real in-memory SQLite parser can interpret modified syntax and return Bob’s note without changing the session actor."
+      },
+      "interpretation": {
+        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+      },
+      "bad_code": "sql = \"... note LIKE '%\" + query + \"%'\"",
+      "fixed_code": "execute(\"... owner=? AND note LIKE ?\", [actor, \"%\"+query+\"%\"])"
+    }
   },
   {
     "id": "code-nosql",
@@ -1586,7 +2138,19 @@
         "$ne": null
       }
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "واجهة دخول تتوقع كلمة مرور كسلسلة. النسخة الضعيفة تسمح بكائن مقارنة $ne داخل شرط البحث؛ نجاح الدخول هنا مرتبط بتغيير نوع المدخل لا تخمين كلمة المرور.",
+        "en": "A sign-in API expects a password string. The vulnerable query accepts a $ne comparison object; authentication changes through a type confusion rather than a guessed password."
+      },
+      "interpretation": {
+        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+      },
+      "bad_code": "query.password = request.json.password",
+      "fixed_code": "require_string(password); compare_secret(password)"
+    }
   },
   {
     "id": "code-template",
@@ -1609,7 +2173,19 @@
     "attack": {
       "template": "{{7*7}}"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة إنشاء معاينة تمزج النص بقالب قابل للتقييم. المحرك المحلي يدعم تعبيرات حسابية مقيدة فقط لتوضيح {{7*7}} دون eval أو تنفيذ تعليمات نظام.",
+        "en": "A preview service mixes input with an evaluated template. The local renderer supports only bounded arithmetic to demonstrate {{7*7}} without eval or system instructions."
+      },
+      "interpretation": {
+        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+      },
+      "bad_code": "render_as_template(user_input)",
+      "fixed_code": "render_fixed_template(user_input_as_data)"
+    }
   },
   {
     "id": "code-redirect",
@@ -1632,7 +2208,19 @@
     "attack": {
       "next": "https://outside.example/"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "وجهة العودة next تأتي من رابط المستخدم. التطبيق يفترض أن الرابط جزء من مساره ويقبل وجهة خارجية؛ هذه الحالة تعرض قرار التحويل ولا تنقل المتصفح إلى نطاق آخر.",
+        "en": "The next return destination comes from a user link. The application assumes it is part of its own flow and accepts an external destination. This case shows the redirect decision without navigating off-device."
+      },
+      "interpretation": {
+        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+      },
+      "bad_code": "redirect(body.next)",
+      "fixed_code": "redirect(allowlisted_local_destination(body.next))"
+    }
   },
   {
     "id": "code-ssrf",
@@ -1655,6 +2243,18 @@
     "attack": {
       "url": "http://internal.lab/config"
     },
-    "level": "intermediate"
+    "level": "intermediate",
+    "lesson": {
+      "story": {
+        "ar": "خدمة معاينة الروابط تملك وصولاً منطقياً إلى public.lab وinternal.lab. اختيار URL داخلي يكشف مورد إعدادات خاصاً في عينة النقل المغلقة؛ لا توجد اتصالات DNS أو شبكة خارجية.",
+        "en": "A link-preview service has logical access to public.lab and internal.lab. Selecting an internal URL exposes a private configuration resource in the closed transport fixture; no DNS or external network calls occur."
+      },
+      "interpretation": {
+        "ar": "اربط النتيجة بحد الثقة الذي تم تجاوزه، لا بمجرد 200. افحص المورد أو النص الناتج قبل الإصلاح وبعده، وميّز الحالات التي تنفذ محللاً فعلياً عن نماذج النقل والسياسة المغلقة.",
+        "en": "Tie the result to the violated trust boundary rather than a 200 status. Inspect the resource or rendered value before and after the fix, and distinguish actual parsing from closed transport and policy models."
+      },
+      "bad_code": "fetch(user_url)",
+      "fixed_code": "validate_destination_and_each_redirect(user_url)"
+    }
   }
 ]

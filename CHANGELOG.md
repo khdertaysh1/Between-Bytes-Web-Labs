@@ -1,3 +1,12 @@
+# v0.9 · Grouped application labs and persisted business workflows
+
+- Replace the 50-card landing page with five labs and internal case navigation, keeping all 50 cases open. Make the academy the default home and retain the original rooms at `/foundations`.
+- Rewrite all 50 cases with application-specific narratives, source-to-sink explanations, evidence interpretation and vulnerable/fixed code excerpts in Arabic and English.
+- Persist checkout quotes, order revisions, provider receipts, fulfilment, refunds, coupon redemptions, gift credit and subscription records. Add independent GET readback and ETags.
+- Verify local canonical provider events with HMAC-SHA256 and keep accepted event processing idempotent. Preserve prior legitimate settlement when rejecting a later invalid request.
+- Add JSON application routes with actual HTTP errors, request IDs and rate-limit headers; separate classroom assessment metadata from business response bodies.
+- Keep the local provider, deterministic stale-read schedule, closed transport fixtures and opaque-origin XSS limits explicit.
+
 # v0.8 · Advanced scenario academy
 
 - Add 50 bilingual, open scenarios across payment logic (16), authorization (10), rate limits (7), XSS contexts (12) and other code flaws (5), alongside the 13 foundation rooms.
