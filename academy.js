@@ -68,7 +68,7 @@ function requestHeaders(input){const headers={'Content-Type':'application/json'}
 function updateWire(){if(!current)return;let input;try{input=JSON.parse($('input').value);}catch(_){input={};}const headers=requestHeaders(input);$('wire-request').textContent='POST '+endpoint()+' HTTP/1.1\nHost: '+location.host+'\n'+Object.entries(headers).map(([k,v])=>k+': '+v).join('\n')+'\n\n'+$('input').value;}
 async function readback(mode=$('mode').value){
  if(!current||current.group!=='payment')return null;const id=current.id;
- try{const r=await fetch('/academy/resource?'+new URLSearchParams({case:id,mode}));if(!r.ok)throw new Error(t('readbackError'));const data=await r.json();if(current?.id!==id)return null;history.push({http:{method:'GET',path:'/academy/resource?'+new URLSearchParams({case:id,mode}),status:r.status,etag:r.headers.get('etag'),body:data}});history=history.slice(-30);$('saved-resource').textContent='GET /academy/resource?'+new URLSearchParams({case:id,mode})+'\nHTTP/1.1 '+r.status+' '+r.statusText+'\nETag: '+r.headers.get('etag')+'\n\n'+JSON.stringify(data,null,2);return data.data;}catch(e){$('error').textContent=e.message;return null;}
+ try{const r=await fetch('/academy/resource?'+new URLSearchParams({case:id,mode}));if(!r.ok)throw new Error(t('readbackError'));const data=await r.json();if(current?.id!==id)return null;history.push({http:{method:'GET',path:'/academy/resource?'+new URLSearchParams({case:id,mode}),status:r.status,etag:r.headers.get('etag'),body:data}});history=history.slice(-30);$('saved-resource').textContent='GET /academy/resource?'+new URLSearchParams({case:id,mode})+'\nHTTP '+r.status+' '+r.statusText+'\nETag: '+r.headers.get('etag')+'\n\n'+JSON.stringify(data,null,2);return data.data;}catch(e){$('error').textContent=e.message;return null;}
 }
 function money(value,currency='USD'){return new Intl.NumberFormat(lang==='ar'?'ar':'en',{style:'currency',currency}).format(value/100);}
 function checkoutSummary(data,body){
@@ -83,13 +83,16 @@ function checkoutSummary(data,body){
  if(data.subscriptions.length){const list=node('ul');for(const entry of data.subscriptions)list.append(node('li',entry.plan+' · '+entry.status));root.append(list);}
  const timeline=node('details');timeline.append(node('summary',lang==='ar'?'سجل المعاملات ('+data.transactions.length+')':'Transaction ledger ('+data.transactions.length+')'));const list=node('ol');for(const entry of data.transactions.slice(-8))list.append(node('li','#'+entry.sequence+' · '+entry.type+' · '+money(entry.amount,entry.currency)));timeline.append(list);root.append(timeline);$('result-summary').replaceChildren(root);
 }
+function setBusy(value){
+ busy=value;for(const id of ['send','mode','normal','sample','payload-choice','input','reset','language','readback'])$(id).disabled=value;
+}
 async function send(){
- if(busy||!current)return;busy=true;$('send').disabled=true;$('error').textContent='';const id=current.id,mode=$('mode').value;const ticket=++sequence;preview=null;$('preview').hidden=true;$('preview').removeAttribute('src');$('browser-evidence').textContent='';$('decision-note').textContent='';$('http-status').textContent='';$('response').textContent='{}';updateWire();
+ if(busy||!current)return;setBusy(true);$('error').textContent='';const id=current.id,mode=$('mode').value;const ticket=++sequence;preview=null;$('preview').hidden=true;$('preview').removeAttribute('src');$('browser-evidence').textContent='';$('decision-note').textContent='';$('http-status').textContent='';$('response').textContent='{}';updateWire();
  try{
   const input=JSON.parse($('input').value);const path=endpoint();const wire=await fetch(path,{method:'POST',headers:requestHeaders(input),body:JSON.stringify(input)});const body=await wire.json();
   if(ticket!==sequence||current?.id!==id)return;
-  const headers=Object.fromEntries(wire.headers);$('http-status').textContent=wire.status+' '+wire.statusText+' · POST';$('decision-note').textContent=current.group==='payment'?t(wire.status>=400?'requestRejected':wire.status===207?'partialAccepted':body.data?.outcome==='duplicate_ignored'?'duplicateIgnored':'requestAccepted'):'';$('http-status').classList.toggle('rejected',wire.status>=400);$('http-status').classList.toggle('partial',wire.status===207);
-  $('response').textContent='HTTP/1.1 '+wire.status+' '+wire.statusText+'\n'+Object.entries(headers).map(([key,value])=>key+': '+value).join('\n')+'\n\n'+JSON.stringify(body,null,2);
+  const headers=Object.fromEntries(wire.headers);$('http-status').textContent=wire.status+' '+wire.statusText+' · POST · '+mode;$('decision-note').textContent=current.group==='payment'?t(wire.status>=400?'requestRejected':wire.status===207?'partialAccepted':body.data?.outcome==='duplicate_ignored'?'duplicateIgnored':'requestAccepted'):'';$('http-status').classList.toggle('rejected',wire.status>=400);$('http-status').classList.toggle('partial',wire.status===207);
+  $('response').textContent='HTTP '+wire.status+' '+wire.statusText+'\n'+Object.entries(headers).map(([key,value])=>key+': '+value).join('\n')+'\n\n'+JSON.stringify(body,null,2);
   if(!wire.headers.get('x-request-id'))throw new Error(body.error?.message||body.error||t('error'));
   const evidence=await fetch('/academy/evidence?'+new URLSearchParams({case:id,mode}));const result=await evidence.json();
   if(result.request_id!==wire.headers.get('x-request-id'))throw new Error('Evidence changed in another tab; send the request again.');
@@ -101,11 +104,12 @@ async function send(){
   if(result.preview){
    preview={ticket,token:result.token,mode,input:JSON.stringify(input),executed:false,rendered:false};let url=result.preview;if(id==='xss-dom-fragment')url+='#'+encodeURIComponent(input.value||'');if(id==='xss-dom-query')url+='?search='+encodeURIComponent(input.value||'');$('preview').src=url;$('preview').hidden=false;$('browser-evidence').textContent=t('previewWait');
   }else{checks=result.checks;$('flag').textContent=result.flag||'';showChecks();}
- }catch(e){if(ticket===sequence)$('error').textContent=e.message;}finally{busy=false;$('send').disabled=false;}
+ }catch(e){if(ticket===sequence)$('error').textContent=e.message;}finally{setBusy(false);}
 }
 window.addEventListener('message',event=>{
  if(event.source!==$('preview').contentWindow||!preview||event.data?.token!==preview.token||preview.ticket!==sequence)return;
  const data=event.data;
+ if(data.type==='academy-error'){preview.runtimeError=true;$('browser-evidence').textContent=(lang==='ar'?'خطأ JavaScript في المعاينة: ':'Preview JavaScript error: ')+String(data.message||'').slice(0,120);history.push({browser:data,mode:preview.mode,input:preview.input});}
  if(data.type==='academy-executed'){preview.executed=true;browserChecks[preview.mode+':'+preview.input]=true;$('browser-evidence').textContent=t('executed')+data.value;history.push({browser:data,mode:preview.mode,input:preview.input});if(preview.mode==='vulnerable'){checks.weak_impact=true;showChecks();}}
  if(data.type==='academy-url-policy'&&current?.id==='xss-url'){
   preview.urlPolicy=true;$('browser-evidence').textContent=t('urlPolicy')+data.href;
@@ -118,10 +122,10 @@ window.addEventListener('message',event=>{
   preview.rendered=true;const shot=preview;
   setTimeout(()=>{
    if(preview!==shot||shot.ticket!==sequence)return;
-   if(!shot.executed&&!shot.urlPolicy)$('browser-evidence').textContent=t('rendered');
+   if(!shot.executed&&!shot.urlPolicy&&!shot.runtimeError)$('browser-evidence').textContent=t('rendered');
    if(shot.mode==='vulnerable'&&shot.executed)checks.weak_impact=true;
-   if(shot.mode==='fixed'&&!shot.executed&&browserChecks['vulnerable:'+shot.input])checks.fixed_rejects=true;
-   if(shot.mode==='fixed'&&!shot.executed&&shot.input===JSON.stringify(current.normal))checks.fixed_control=true;
+   if(shot.mode==='fixed'&&!shot.executed&&!shot.runtimeError&&browserChecks['vulnerable:'+shot.input])checks.fixed_rejects=true;
+   if(shot.mode==='fixed'&&!shot.executed&&!shot.runtimeError&&shot.input===JSON.stringify(current.normal))checks.fixed_control=true;
    history.push({browser:{type:'observation',execution:shot.executed,text:data.text},mode:shot.mode,input:shot.input});history=history.slice(-30);showChecks();
   },450);
  }
@@ -132,8 +136,8 @@ $('normal').onclick=()=>{$('input').value=JSON.stringify(current.normal,null,2);
 $('sample').onclick=()=>{$('input').value=JSON.stringify(current.attack,null,2);hint=Math.max(hint,2);$('hint-text').textContent=t('hint1');updateWire();};
 $('hint').onclick=()=>{if(!current)return;const n=Math.min(hint++,2);$('hint-text').textContent=t('hint'+n)+(n===1?'\n'+JSON.stringify(current.attack):'');};
 $('payload-choice').onchange=()=>{const entry=current?.payloads?.[$('payload-choice').value];if(!entry)return;$('input').value=JSON.stringify({value:entry.value},null,2);$('payload-note').textContent=entry.note[lang];updateWire();};
-$('send').onclick=send;$('input').oninput=updateWire;$('mode').onchange=()=>{updateWire();$('http-status').textContent='';$('decision-note').textContent='';$('response').textContent='{}';};$('readback').onclick=async()=>{const data=await readback();if(data)checkoutSummary(data,{});};
-$('reset').onclick=async()=>{if(busy||!current)return;busy=true;$('send').disabled=true;$('reset').disabled=true;try{await post('/academy/reset',{case:current.id});route();}catch(e){$('error').textContent=e.message;}finally{busy=false;$('send').disabled=false;$('reset').disabled=false;}};
+$('send').onclick=send;$('input').oninput=updateWire;$('mode').onchange=()=>{sequence++;preview=null;$('preview').hidden=true;$('preview').removeAttribute('src');$('browser-evidence').textContent='';updateWire();$('http-status').textContent='';$('decision-note').textContent='';$('response').textContent='{}';$('saved-resource').textContent='{}';$('result-summary').textContent=t('waiting');};$('readback').onclick=async()=>{const data=await readback();if(data)checkoutSummary(data,{});};
+$('reset').onclick=async()=>{if(busy||!current)return;setBusy(true);try{await post('/academy/reset',{case:current.id});route();}catch(e){$('error').textContent=e.message;}finally{setBusy(false);}};
 $('save-reflection').onclick=()=>{notes[current.id]=$('reflection').value.slice(0,10000);save('bb-academy-notes-v1',notes);$('hint-text').textContent=t('saved');};
 $('clear-mark').onclick=()=>{delete marks[current.id];save('bb-academy-marks-v1',marks);};
 $('export').onclick=()=>{const blob=new Blob([JSON.stringify({case:current.id,checks,verification:current.group==='xss'?'browser-assisted':'server-model',history,conclusion:$('reflection').value},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download=current.id+'-evidence.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

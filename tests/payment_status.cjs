@@ -12,7 +12,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
   assert.equal(await run('fixed',c.normal),200,c.id);
   const status=await run('fixed',c.attack);assert.equal(status,expected[c.id.slice(4)],c.id);
   assert.ok((await p.locator('#http-status').innerText()).includes('POST'));
-  const saved=await p.locator('#saved-resource').textContent();assert.ok(saved.startsWith('GET /academy/resource'));assert.ok(saved.includes('HTTP/1.1 200'));
+  const saved=await p.locator('#saved-resource').textContent();assert.ok(saved.startsWith('GET /academy/resource'));assert.ok(saved.includes('HTTP 200'));
   const note=await p.locator('#decision-note').innerText();assert.ok(note.includes(c.id==='pay-replay'?'ignored the repeat':'rejected'),c.id+' '+note);
   assert.equal(await p.locator('#checks li.done').count(),3,c.id);
   console.log(c.id+': vulnerable=200, fixed valid=200, fixed probe='+status);

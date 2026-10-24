@@ -28,7 +28,22 @@ def text(data, key, default=''):
     value = data.get(key, default)
     if not isinstance(value, str) or len(value) > 1024:
         raise ValueError('Expected short string: ' + key)
+    try:value.encode('utf-8')
+    except UnicodeError:raise ValueError('Invalid Unicode string: '+key)
     return value
+
+
+def validate_strings(value,depth=0):
+    if depth>8:raise ValueError('Input nesting exceeds the local request contract')
+    if isinstance(value,str):
+        try:value.encode('utf-8')
+        except UnicodeError:raise ValueError('Invalid Unicode string')
+    elif isinstance(value,dict):
+        for key,item in value.items():
+            if not isinstance(key,str):raise ValueError('Object field names must be strings')
+            validate_strings(key,depth+1);validate_strings(item,depth+1)
+    elif isinstance(value,list):
+        for item in value:validate_strings(item,depth+1)
 
 
 class Academy:
@@ -52,11 +67,12 @@ class Academy:
             raise ValueError('Unknown scenario or mode')
         if not isinstance(data, dict) or len(data) > 8:
             raise ValueError('Input must be a JSON object with at most eight fields')
+        validate_strings(data)
         # Reject unsupported fields instead of silently accepting misspelled controls.
         allowed = set(CASES[case]['normal']) | set(CASES[case]['attack'])
         if set(data) - allowed:
             raise ValueError('Unsupported fields: ' + ', '.join(sorted(set(data) - allowed)))
-        if case.startswith('pay-') and set(CASES[case]['normal'])-set(data):
+        if set(CASES[case]['normal'])-set(data):
             raise ValueError('Missing required fields: '+', '.join(sorted(set(CASES[case]['normal'])-set(data))))
         state = self.states.setdefault((case, mode), {})
         fixed = mode == 'fixed'
@@ -116,19 +132,22 @@ class Academy:
             else:data = dict(obj)
         elif kind == 'batch':
             keys = d.get('objects')
-            if not isinstance(keys,list) or not 1<=len(keys)<=8 or any(not isinstance(k,str) or k not in objects for k in keys):raise ValueError('Choose seeded object IDs')
+            if not isinstance(keys,list) or not 1<=len(keys)<=8 or any(not isinstance(k,str) or len(k)>1024 for k in keys):raise ValueError('Choose up to eight short object IDs')
+            if any(k not in objects for k in keys):return {'status':404,'data':None,'impact':False,'protected':False,'legitimate':False}
             foreign = any(objects[k]['owner']!='alice' for k in keys)
             if fixed and foreign:status = 403
             else:data = [dict(objects[k]) for k in keys]
         elif kind in {'export','download'}:
             field = 'job' if kind=='export' else 'file'; key = text(d,field)
-            owner = {'export-alice':'alice','export-bob':'bob','file-alice':'alice','file-bob':'bob'}.get(key)
-            if owner is None:raise ValueError('Unknown fixture reference')
+            references={'export-alice':'alice','export-bob':'bob'} if kind=='export' else {'file-alice':'alice','file-bob':'bob'}
+            owner=references.get(key)
+            if owner is None:return {'status':404,'data':None,'impact':False,'protected':False,'legitimate':False}
             foreign = owner!='alice'
             if fixed and foreign:status = 403
-            else:data = {'owner':owner,'filename':'invoices-'+owner+'-2026.csv','content':'invoice_id,customer,amount,currency\nINV-2026-1042,'+owner+',24900,USD','content_type':'text/csv'}
+            else:data = {'owner':owner,'filename':'invoices-'+owner+'-2026.csv','content':'invoice_id,customer,amount,currency\n'+('INV-2026-1041,alice,12900,USD' if owner=='alice' else 'INV-2026-1042,bob,24900,USD'),'content_type':'text/csv'}
         elif kind == 'role':
             action = text(d,'action');claimed = text(d,'role');foreign = action=='admin'
+            if claimed not in {'viewer','admin'}:raise ValueError('Choose viewer or admin role')
             if action not in {'view','admin'}:raise ValueError('Choose view or admin')
             if foreign and (fixed or claimed!='admin'):status=403
             else:data = {'admin_panel':foreign,'effective_role':'viewer' if fixed else claimed}
@@ -171,6 +190,8 @@ class Academy:
             elif kind == 'case':key = 'account:'+text(d,'account','alice')
             elif kind == 'route':key = 'route:'+text(d,'route','login')+':'+account
             else:key = 'challenge:'+text(d,'challenge','one')+':'+account
+            totals=s.setdefault('account_totals',{})
+            if account not in totals and len(totals)>=64:raise ValueError('Reset this exercise before adding more account identities')
             buckets = s.setdefault('buckets',{})
             if key not in buckets and len(buckets)>=64:raise ValueError('Reset this bounded exercise before adding more identities')
             accepted = min(count,max(0,3-buckets.get(key,0)));buckets[key] = buckets.get(key,0)+accepted
@@ -190,7 +211,7 @@ class Academy:
                 try:
                     if fixed:rows=db.execute('SELECT owner,note FROM notes WHERE owner=? AND note LIKE ?',('alice','%'+query+'%')).fetchall()
                     else:rows=db.execute("SELECT owner,note FROM notes WHERE owner='alice' AND note LIKE '%"+query+"%'").fetchall()
-                except sqlite3.Error:rows=[]
+                except sqlite3.Error:return {'status':400,'data':None,'error_code':'invalid_query','impact':False,'protected':False,'legitimate':False}
             result = rows;impact = any(row[0]=='bob' for row in rows)
             protected = fixed and query!= 'Alice' and not impact
             legitimate = fixed and query=='Alice' and len(rows)==1
@@ -212,15 +233,17 @@ class Academy:
             impact=expression and not fixed;protected=fixed and expression;legitimate=fixed and not expression
         elif kind == 'redirect':
             value = text(d,'next');safe=value in {'/welcome','/account'}
-            result={'destination':value if not fixed or safe else None,'navigation_performed':False}
-            impact=not safe and not fixed;protected=not safe and fixed;legitimate=safe and fixed
+            if any(ord(ch)<32 or ord(ch)==127 for ch in value):raise ValueError('Control characters are not allowed in destinations')
+            parsed=urlsplit(value);external=bool(parsed.scheme or parsed.netloc) 
+            result={'destination':value if not fixed or safe else None,'external':external,'navigation_performed':False}
+            impact=external and not fixed;protected=not safe and fixed;legitimate=safe and fixed
         elif kind == 'ssrf':
             value = text(d,'url');fixtures={'https://public.lab/welcome':'PUBLIC_DEMO','http://internal.lab/config':'PRIVATE_DEMO_CONFIG'}
             if value not in fixtures:raise ValueError('Only the two fixture URLs exist; no network transport')
             private=value=='http://internal.lab/config'
             result={'content':fixtures[value] if not fixed or not private else None,'transport':'in-memory mapping, no DNS, sockets or files'}
             impact=private and not fixed;protected=private and fixed;legitimate=not private and fixed
-        return {'status':422 if protected and kind=='nosql' else 403 if protected and kind in {'ssrf','redirect'} else 200,'data':result,'impact':impact,'protected':protected,'legitimate':legitimate}
+        return {'status':401 if kind=='nosql' and not protected and not result['authenticated'] else 422 if protected and kind=='nosql' else 403 if protected and kind in {'ssrf','redirect'} else 200,'data':result,'impact':impact,'protected':protected,'legitimate':legitimate}
 
 
 def preview_document(case, mode, value, token):
@@ -248,7 +271,6 @@ window.addEventListener('error',e=>send('academy-error',{message:e.message.slice
         else:statement='const input=`'+value+'`;'
         body='<div id="output"></div><script>'+statement+'document.getElementById("output").textContent=input;</script>'
     elif kind=='url':
-        parsed=urlsplit(value)
         allowed=value in {'/welcome','/account'}
         href = value if not fixed or allowed else '#blocked'
         body='<a id="output" href="'+html.escape(href,quote=True)+'">Local fixture link</a><script>const link=document.getElementById("output");send("academy-url-policy",{dangerous:link.getAttribute("href").toLowerCase().startsWith("javascript:"),href:link.getAttribute("href")});</script>'

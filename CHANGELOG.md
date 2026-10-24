@@ -1,3 +1,13 @@
+# v0.9.2 · Whole-project HTTP, state and browser audit
+
+- Add explicit HTTP/body/state verification for all 50 academy cases and all 13 foundation rooms, malformed-input coverage and browser edge regressions.
+- Correct wrong-password 401 and SQL syntax-error 400 responses; isolate export/download reference types, return 404 for missing resources and correct Alice CSV data.
+- Validate required fields for every case, Unicode strings, JSON duplicate fields/non-finite constants, known methods and bounded account identities.
+- Fix malformed XSS URL previews and non-ASCII webhook/CSRF token handling; surface preview JavaScript errors without false completion marks.
+- Lock request controls while work is pending, cancel stale previews on variant changes and identify the responding variant. Do not invent an HTTP protocol version in response displays.
+- Correct redirect external-target classification and include per-attempt rate-limit outcomes.
+- Publish docs/audit-0.9.2.md with the verified matrix and explicit local-model/browser limitations.
+
 # v0.9.1 · Correct and explain payment HTTP outcomes
 
 - Reject mismatched fixed quote inputs with 422 before changing order state, rather than silently normalizing and returning 200. Reject sub-cent mismatches and missing required payment fields.

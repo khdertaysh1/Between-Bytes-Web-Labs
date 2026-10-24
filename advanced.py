@@ -45,7 +45,9 @@ def exercise(kind, mode, value):
         allowed=value in {'/welcome','/account'}
         if mode=='fixed' and not allowed:
             return 400, {'error':'Destination must be an allowed local route','simulation':True}
-        return 200, {'decision':'redirect','would_status':302,'location':value,'external':not allowed,'simulation':True}
+        try:parsed=urlsplit(value)
+        except ValueError:return 400,{'error':'Malformed destination','simulation':True}
+        return 200, {'decision':'redirect','would_status':302,'location':value,'external':bool(parsed.scheme or parsed.netloc),'simulation':True}
     if kind in {'api-keys','exposed-files'}:
         item=FIXTURES.get(value)
         if not item:

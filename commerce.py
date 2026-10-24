@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 import hashlib
 import hmac
 import json
+import re
 import secrets
 
 PROVIDER_KEY=b'between-bytes-local-provider-key-not-for-production'
@@ -115,7 +116,8 @@ def execute(kind,fixed,d,state,integer,text):
     if kind in {'status','binding','webhook'}:
         if kind=='webhook':
             event=text(d,'event','pending');signature=text(d,'signature')
-            verified=hmac.compare_digest(signature,provider_signature(event))
+            if event not in {'settled','pending'}:raise ValueError('Unknown provider event')
+            verified=bool(re.fullmatch(r'[a-f0-9]{64}',signature)) and hmac.compare_digest(signature,provider_signature(event))
             bad=event=='settled' and not verified
             if fixed and not verified:return finish(True,status=401,signature_verified=False,order_state=order['status'])
             receipt=c['provider_receipts']['settled-order100'] if verified else None

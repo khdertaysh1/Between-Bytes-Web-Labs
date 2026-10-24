@@ -15,6 +15,17 @@ from advanced import exercise
 from browser_labs import initialize, authenticated, csrf_write, LabServer, Sidecar
 from training import access_lesson, preview_document, PREVIEW_CSP
 
+def strict_json(value):
+    def unique_object(pairs):
+        result={}
+        for key,item in pairs:
+            if key in result:raise ValueError('Duplicate JSON field')
+            result[key]=item
+        return result
+    def invalid_constant(value):raise ValueError('Non-finite JSON number')
+    return json.loads(value,object_pairs_hook=unique_object,parse_constant=invalid_constant)
+
+
 GENERIC = {"message": "If the account exists, a reset message will be queued."}
 USERS = {"alice@example.test", "bob@example.test"}
 
@@ -130,14 +141,21 @@ def handler_for(labs):
             state=context.labs if context else labs
             if not self.valid_host():
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
-            parsed = urlsplit(self.path)
+            try:parsed=urlsplit(self.path)
+            except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
+            if get_api:
+                group,case,mode=get_api.groups()
+                if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
+                return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.9.1','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.9.2','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
                 try:
                     query=parse_qs(parsed.query,max_num_fields=3)
+                    if any(len(values)!=1 for values in query.values()):raise ValueError('Duplicate query field')
                     case=query.get('case',[''])[0];mode=query.get('mode',[''])[0]
                     if case not in {row['id'] for row in ACADEMY_CATALOG} or mode not in {'vulnerable','fixed'}:raise ValueError('Unknown case or variant')
                     if parsed.path=='/academy/resource':
@@ -220,21 +238,25 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Cross-origin requests rejected"})
             if not csrf_route and self.headers.get("Sec-Fetch-Site") == "cross-site":
                 return self.reply(403, {"error": "Cross-site requests rejected"})
+            try:request_path=urlsplit(self.path).path
+            except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            if request_path in {'/academy/catalog','/academy/evidence','/academy/resource'} or request_path.startswith('/academy/preview/'):
+                return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use GET for this resource'}},headers={'Allow':'GET'})
             api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if not 0 < size <= 4096:
-                    return self.reply(413, {"error": "Body must be 1..4096 bytes"})
+                    return self.reply(413,{'error':{'code':'body_too_large','message':'Body must be 1..4096 bytes'}} if api else {'error':'Body must be 1..4096 bytes'})
                 content_type=self.headers.get_content_type()
                 if api:
                     if content_type!='application/json':return self.reply(415,{'error':{'code':'unsupported_media_type','message':'Use application/json'}})
-                    input_data=json.loads(self.rfile.read(size).decode('utf-8'))
+                    input_data=strict_json(self.rfile.read(size).decode('utf-8'))
                     form={}
                 else:
                     if content_type != 'application/x-www-form-urlencoded':return self.reply(415,{'error':'Use form encoding'})
                     form=parse_qs(self.rfile.read(size).decode('utf-8'),max_num_fields=8)
             except (ValueError, UnicodeError, RecursionError):
-                return self.reply(400, {"error": "Malformed request"})
+                return self.reply(400,{'error':{'code':'invalid_json','message':'Malformed or ambiguous JSON request'}} if api else {'error':'Malformed request'})
             if api:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':{'code':'session_required','message':'Start a classroom session'}})
@@ -258,7 +280,7 @@ def handler_for(labs):
                     if self.path == '/academy/reset':
                         academy.reset(case)
                         return self.reply(200,{'reset':case})
-                    data=json.loads(form.get('input',['{}'])[0])
+                    data=strict_json(form.get('input',['{}'])[0])
                     result=academy.run(case,form.get('mode',[''])[0],data)
                     return self.reply(200,result)
                 except (ValueError,TypeError,RecursionError) as error:

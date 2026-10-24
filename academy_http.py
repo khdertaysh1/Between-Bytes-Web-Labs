@@ -45,12 +45,14 @@ def response(academy,case,mode,result):
         if status==429:headers['Retry-After']='60'
         payload={'error':{'code':'rate_limit_exceeded' if status==429 else 'invalid_credentials','message':'Too many attempts. Try again later.' if status==429 else 'Invalid email or password.'}}
         # A bounded batch summarizes the per-attempt statuses; no credentials are guessed.
-        payload['attempts']={'checked':result['accepted_failed_attempts'],'throttled':result['blocked']}
+        payload['attempts']={'checked':result['accepted_failed_attempts'],'throttled':result['blocked'],'operations':[{'status':401} for _ in range(result['accepted_failed_attempts'])]+[{'status':429} for _ in range(result['blocked'])]}
     elif case.startswith('xss-'):
         if case=='xss-stored':status=201
         payload={'data':{'preview_url':result['preview'],'source':result['source'],'stored':case=='xss-stored'}}
     else:
-        if status>=400:payload={'error':{'code':'invalid_request_type' if case=='code-nosql' else 'destination_not_allowed','message':'Password must be a string.' if case=='code-nosql' else 'The requested operation is not permitted.'}}
+        if status>=400:
+            code,message=('invalid_credentials','Invalid email or password.') if status==401 else ('invalid_request_type','Password must be a string.') if case=='code-nosql' else ('invalid_query','The search query could not be processed.') if case=='code-sqli' else ('destination_not_allowed','The requested operation is not permitted.')
+            payload={'error':{'code':code,'message':message}}
         else:payload={'data':{'notes':deepcopy(result['data'])} if case=='code-sqli' else deepcopy(result['data'])}
     payload['request_id']=request_id
     return status,payload,headers

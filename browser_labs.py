@@ -30,7 +30,7 @@ def csrf_write(labs,mode,origin,expected,cookie,value,token):
         return 401,{'error':'No synthetic session'}
     if not isinstance(value,str) or not 1<=len(value)<=80:
         return 400,{'error':'Note must have 1..80 characters'}
-    if mode=='fixed' and (origin!=expected or not hmac.compare_digest(token,labs.csrf_token)):
+    if mode=='fixed' and (origin!=expected or not isinstance(token,str) or not token.isascii() or not hmac.compare_digest(token,labs.csrf_token)):
         return 403,{'error':'Origin or CSRF token rejected'}
     state=labs.browser_notes[mode]
     state.update(note=value,revision=state['revision']+1)

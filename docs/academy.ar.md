@@ -1,4 +1,4 @@
-# Between Bytes · خمسة مختبرات تطبيقية · 0.9.1
+# Between Bytes · خمسة مختبرات تطبيقية · 0.9.2
 
 ## حالات HTTP للدفع · 0.9.1
 
@@ -2242,3 +2242,5 @@ validate_destination_and_each_redirect(user_url)
   "url": "http://internal.lab/config"
 }
 ```
+
+[مراجعة الإصدار 0.9.2 ومصفوفة جميع الحالات](audit-0.9.2.md)

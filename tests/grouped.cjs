@@ -14,7 +14,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  async function send(mode,input){await p.locator('#mode').selectOption(mode);await p.locator('#input').fill(JSON.stringify(input));await p.locator('#send').click();await p.waitForFunction(()=>!document.getElementById('send').disabled);assert.equal(await p.locator('#error').innerText(),'');}
  await send('vulnerable',{payment:'settled-order1'});assert.ok((await p.locator('#http-status').innerText()).startsWith('200'));
  await send('fixed',{payment:'settled-order1'});assert.ok((await p.locator('#http-status').innerText()).startsWith('409'));
- const wire=await p.locator('#response').textContent();assert.ok(wire.includes('HTTP/1.1 409'));assert.ok(wire.includes('payment_order_mismatch'));assert.ok(!wire.includes('"impact"'));assert.ok(!wire.includes('"flag"'));
+ const wire=await p.locator('#response').textContent();assert.ok(wire.includes('HTTP 409'));assert.ok(wire.includes('payment_order_mismatch'));assert.ok(!wire.includes('"impact"'));assert.ok(!wire.includes('"flag"'));
  assert.ok((await p.locator('#saved-resource').textContent()).includes('"revision": 0'));
  await send('fixed',{payment:'settled-order100'});assert.equal(await p.locator('#checks li.done').count(),3);assert.ok((await p.locator('#saved-resource').textContent()).includes('fulfilment_released'));
  assert.deepEqual(statuses,[200,409,200]);

@@ -1,4 +1,4 @@
-# Between Bytes · Five application labs · 0.9.1
+# Between Bytes · Five application labs · 0.9.2
 
 ## Payment HTTP outcomes · 0.9.1
 
@@ -2242,3 +2242,5 @@ Investigation request:
   "url": "http://internal.lab/config"
 }
 ```
+
+[Version 0.9.2 audit and complete HTTP matrix](audit-0.9.2.md)
