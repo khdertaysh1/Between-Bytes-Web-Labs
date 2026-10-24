@@ -19,7 +19,7 @@ function setupChallenge(id, exam=false) {
   if(exam){spec.goal=courseContent[id].exam;spec.checks=spec.checks.map(t=>t.replaceAll('BB-LAB','BB-EXAM'));}
   mission.spec=spec;
   $('mission-start').textContent=exam?'إعادة بدء الاختبار':'ابدأ / صفّر التدريب';
-  $('mission-kind').textContent=exam?'اختبار عملي · 100 نقطة عند الاجتياز لأول مرة':'تدريب مع تلميحات · دون نقاط';
+  $('mission-kind').textContent=exam?'تمرين اختباري مستقل':'تدريب مع تلميحات';
   $('mission-title').textContent=exam?'طبّق ما فهمته دون تلميحات':'اكتشف الفرق بنفسك';
   document.querySelector('.hints').hidden=exam;
   $('guided-demo').hidden=exam||!!extraLessons[id];
@@ -64,9 +64,9 @@ function gradeMission() {
   if(checks.every(Boolean)) {
     if(mission.exam){
       const fresh=courseProgress.complete(id);saveProgress();
-      $('mission-status').textContent=fresh?'اجتزت الاختبار العملي! أُضيفت 100 نقطة. راجع مسارك لمعرفة المستوى المتاح.':'اجتزت الاختبار مجدداً. نقاط هذا الدرس مُنحت سابقاً؛ لا تُضاف نقاط مكررة.';
+      $('mission-status').textContent=fresh?'اجتزت الاختبار العملي! يمكنك الانتقال لأي درس تختاره.':'اجتزت الاختبار مجدداً. يمكنك إعادة التدريب أو اختيار أي درس آخر.';
     }else{
-      completed.add(id);saveProgress();$('mission-status').textContent='حُلّ التحدي التدريبي. راجع شرح الإصلاح ثم ابدأ الاختبار العملي لتحصيل النقاط.';
+      completed.add(id);saveProgress();$('mission-status').textContent='حُلّ التحدي التدريبي. راجع شرح الإصلاح ثم جرّب الاختبار العملي لتطبيق فهمك.';
     }
   }
 }
@@ -77,7 +77,7 @@ function addEvidence(row) {
   gradeMission();
 }
 async function startMission(exam=false){
-  if(busy||!courseProgress.canAccess(current))return;
+  if(busy)return;
   lock(true);$('mission-send').disabled=true;
   try{await reset();setupChallenge(current,exam);mission.active=true;$('mission-status').textContent=exam?'بدأ الاختبار: اقرأ المهمة واجمع الأدلة دون تلميحات.':'التدريب جاهز. عدّل المدخلات واقرأ النتائج.';tab('experiment');}
   catch(error){$('mission-status').textContent='تعذر بدء الجولة: '+error.message;}
@@ -149,7 +149,7 @@ $('mission-form').onsubmit=async event=>{
 };
 $('mission-hint').onclick=()=>{if(mission.exam)return;const hints=instructions[current].hints;mission.hints=Math.min(mission.hints+1,hints.length);$('hint-text').textContent=hints.slice(0,mission.hints).map((text,i)=>`${i+1}. ${text}`).join('\n');};
 $('export-evidence').onclick=()=>{
-  const blob=new Blob([JSON.stringify({lesson:current,kind:mission.exam?"assessment":"practice",points:courseProgress.awards[current]||0,local_training:true,evidence:mission.rows},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({lesson:current,kind:mission.exam?"assessment":"practice",local_training:true,evidence:mission.rows},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`between-bytes-${current}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 setupChallenge(current);

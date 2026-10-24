@@ -1,8 +1,8 @@
 # Hands-on practice
 
-Version 0.4 separates this practice from point-bearing practical assessments; see [course progression](course.en.md).
+Version 0.6 keeps practice and independent exercises open to everyone; see [course progression](course.en.md).
 
-Seven local lessons now have a manual workbench. Open a lesson, choose the second tab, start/reset the challenge, edit its inputs, and send individual requests. The checklist advances from observed evidence rather than watching the automatic demonstration. Hints reveal progressively. Evidence can be downloaded as JSON. A round is bounded to 60 submissions; starting a round resets server counters/mail across all lessons. Progress is client-side educational state, not a tamper-resistant score or certification.
+Seven local lessons now have a manual workbench. Open a lesson, choose the second tab, start/reset the challenge, edit its inputs, and send individual requests. The checklist advances from observed evidence rather than watching the automatic demonstration. Hints reveal progressively. Evidence can be downloaded as JSON. A round is bounded to 60 submissions; starting a round resets server counters/mail across all lessons. Progress is client-side educational state, not a certification.
 
 - **Enumeration:** existing and missing account in vulnerable mode, then matching 202/body for both in fixed mode.
 - **Rate limit:** observe 429 first, then change the synthetic forwarded identity. Vulnerable returns 401; fixed remains 429. No real login or password guessing exists.

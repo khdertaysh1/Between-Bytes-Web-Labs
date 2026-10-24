@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — 2026-10-24
+
+- Removed points and all prerequisite locks. All 13 lessons and exercises are open immediately in any order.
+- Kept explanations, practice, independent exercises and optional local completion marks.
+- Migrated prior achievements to completion marks; reset never restricts access.
+- Browser checks cover direct access to every lesson from a fresh state and after clearing completion.
+
+
 ## 0.5.0 — 2026-10-24
 
 - Six new explained lessons with practice and scored assessments: CSRF, CORS, open redirect, SSRF, API keys and exposed ENV/backup files.

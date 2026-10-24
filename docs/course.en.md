@@ -1,13 +1,11 @@
-# Course progression and practical assessments
+# Open learning path — 0.6
 
-Each lesson now contains an expanded explanation, hinted manual practice, root cause/fix, and a separate practical assessment. Begin an assessment from the third lesson tab. It resets the server round, disables hints and automatic demos, and awards points from evidence criteria rather than multiple-choice answers or viewing a demonstration.
+All 13 lessons and exercises are available immediately, in any order. The six levels are topic groups only. Points, prerequisite checks and score-based access have been removed.
 
-Level 1: enumeration, rate limiting, reset-mail abuse. Level 2: IDOR and the local edge/origin authorization model; requires all three level-one exams (300 points). Level 3: reflected and DOM XSS; requires all five preceding exams (500 points). Each passed exam awards 100 points exactly once, maximum 1300. Practice does not award points. Replays do not increase totals; incomplete rounds do not deduct points.
+Each lesson keeps its expanded explanation, hinted practice, fix/limitations and independent practical exercise. Start an exercise from the third tab without completing any other lesson. Assessment variants still use different synthetic accounts, invoice IDs or BB-EXAM markers where appropriate. Evidence checklists verify actual classroom behavior, not scores.
 
-Assessment variants use Bob's synthetic account, visitor@example.test as an absent account, IDOR invoices 2001/2002 for Alice/Bob, and the BB-EXAM alert marker for XSS. The browser must observe the required execution signal in vulnerable mode and literal rendering of the same input in fixed mode. Lack of execution within the 650ms observation window is not proof against delayed or other payload paths. The 403 exercise remains a local branch simulation, not a Cloudflare bypass.
+Optional local completion marks survive refresh. Previous successful assessments migrate to marks only; they do not grant or restrict access. Clearing completion never locks lessons. Exported evidence contains the lesson, round type, synthetic inputs and observations, without point fields. This is not a certification or tamper-resistant examination service.
 
-Progress uses localStorage, persists on refresh, and is local to the browser. Version 0.3 progress is migrated as practice only, without awarding exam points. Clearing progress confirms before resetting scores and locking later levels. Direct navigation to locked lessons returns to the roadmap. This is deliberately an educational, inspectable client-side mechanism, not a tamper-resistant examination, certificate system or authenticated leaderboard. Server state is shared by tabs connected to one process; concurrent rounds can interfere.
+Starting a round resets the shared synthetic server state. Avoid concurrent rounds in multiple tabs. Browser and fixture limitations remain documented in [advanced exercises](advanced.en.md).
 
-Run Python tests as before and `node tests/progression.test.cjs` for pure scoring/prerequisite checks. Optional `tests/browser.cjs` requires Playwright/Chromium and a running local server; it exercises all exams, practice/assessment separation, one-time scores, prerequisites, refresh persistence, XSS isolation and mobile overflow. Neither Node nor Playwright is needed for normal Termux use.
-
-Version 0.5 adds level 4 (CSRF/CORS, 700 prerequisite points), level 5 (modeled redirect/SSRF, 900), and level 6 (API keys/exposed file fixtures, 1100). All prior exams are required; v0.4 scores remain intact. See [advanced lesson scope](advanced.en.md).
+Developer checks: Python unittest suite, `node tests/progression.test.cjs`, and optional Playwright `node tests/browser.cjs` with a local server. Coverage includes direct access to all lessons from fresh/reset state, legacy completion migration, exercises, persistence, browser isolation and mobile layouts.

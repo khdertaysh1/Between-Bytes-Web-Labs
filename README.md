@@ -2,7 +2,7 @@
 
 مختبرات عربية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
 
-**الإصدار 0.5:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
+**الإصدار 0.6:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
 
 | المختبر | الخطأ المتعمّد | ما يوضحه الإصلاح |
 |---|---|---|
@@ -38,19 +38,19 @@ python app.py
 
 ## أول تجربة خلال دقيقة
 
-1. افتح درساً من **المستوى الأول** واقرأ الشرح الموسّع داخل الصفحة.
+1. اختر **أي درس** واقرأ الشرح الموسّع داخل الصفحة.
 2. انتقل إلى **جرّب وقارن** وابدأ التدريب اليدوي؛ عدّل المدخلات واجمع الأدلة واستعن بالتلميحات.
 3. افتح **افهم الإصلاح** لمراجعة السبب وحدود الحل.
 4. اضغط **ابدأ الاختبار العملي**: جولة جديدة دون تلميحات، وببيانات اختبار مذكورة في المهمة.
-5. عند اجتياز شروط الدليل تحصل على **100 نقطة مرة واحدة**؛ التدريب والمقارنة الآلية لا يمنحان نقاطاً.
+5. أكمل قائمة الأدلة وراجع تفسير النتيجة. يمكنك الانتقال لأي درس في أي وقت.
 
-**ستة مستويات:** الأساسيات → الصلاحيات → XSS → CSRF/CORS → الوجهات وطلبات الخادم → المعلومات والأسرار المنشورة. يفتح كل مستوى بعد اجتياز جميع اختبارات ما قبله. الحدود: 300، 500، 700، 900، 1100 نقطة؛ والمجموع الأقصى 1300 دون مضاعفة النقاط بالإعادة.
+**جميع الدروس والتمارين مفتوحة من البداية.** المستويات الستة تقسيم للموضوعات فقط؛ اختر الترتيب الذي يناسبك. لا يوجد رصيد أو شرط اجتياز لفتح درس.
 
 [تفاصيل الدروس الستة الجديدة وحدودها](docs/advanced.ar.md) · [دليل المستويات والاختبارات](docs/course.ar.md) · [English course guide](docs/course.en.md) · [دليل التمارين](docs/challenges.ar.md)
 
-التقدّم محفوظ محلياً على نفس المتصفح، وليس نظام امتحانات محصناً ضد تعديل المستخدم أو نظام شهادات. نتائج التدريب القديمة لا تتحول تلقائياً إلى نقاط. بدء جولة يمسح عدّادات الخادم والبريد الوهمي؛ الجولة تسمح حتى 60 تجربة.
+التقدّم محفوظ محلياً على نفس المتصفح، وليس نظام امتحانات محصناً ضد تعديل المستخدم أو نظام شهادات. علامات الإنجاز اختيارية ولا تتحكم بالوصول. بدء جولة يمسح عدّادات الخادم والبريد الوهمي؛ الجولة تسمح حتى 60 تجربة.
 
-الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح بيانات الخادم المؤقتة؛ نقاط الاختبارات تبقى محفوظة في المتصفح.
+الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح بيانات الخادم المؤقتة؛ علامات الإنجاز تبقى محفوظة في المتصفح.
 
 ## الاختبارات
 
@@ -78,7 +78,7 @@ XSS يعمل داخل إطار sandbox منفصل عن أصل المنصة، م�
 
 ## English
 
-Version 0.5 provides expanded in-page lessons, six gated levels and separate practical assessments. Pass each once for 100 points; practice awards none. Levels unlock at 300, 500, 700, 900 and 1100 points with all prerequisite exams passed, maximum 1300. Scores are local educational state, not secure exam records. See the [course guide](docs/course.en.md).
+Version 0.6 makes all 13 lessons and exercises available immediately, in any order. Six levels organize topics only; there are no points or prerequisites. Optional local completion marks remain. See the [course guide](docs/course.en.md).
 
 Thirteen local, intentionally vulnerable web lessons with paired fixes: CSRF, CORS, modeled SSRF/redirect, synthetic API-key/file disclosures, IDOR, reflected XSS, DOM XSS, an edge/origin 403 simulation, account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then solve the manual challenges using editable inputs, evidence and progressive hints. See [hands-on guide](docs/challenges.en.md). All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
 

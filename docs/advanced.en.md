@@ -1,6 +1,6 @@
-# Six added lessons (0.5)
+# Six added lessons (0.6)
 
-The course now has 13 lessons across six levels, maximum 1300 points. Levels 4, 5 and 6 unlock after all prior assessments at 700, 900 and 1100 points. Existing 0.4 exam scores remain intact. Practice and automatic demos still award no points.
+All 13 lessons across six topic groups are available immediately in any order. There are no scores or prerequisite locks. Optional completion marks persist locally.
 
 ## Browser-origin exercises
 
@@ -20,6 +20,6 @@ API-key disclosure and exposed-file lessons read a fixed in-memory dictionary, n
 
 ## Developer checks
 
-Python tests cover policy decisions, invalid destinations, synthetic secret/file handling, CSRF session/origin/token enforcement, CORS authentication/headers and unchanged protection of unrelated routes. Optional Playwright checks cover all 13 practical assessments, actual credentialed cross-origin read/write behavior, scoring/prerequisites, reload persistence, XSS isolation and mobile layouts. The browser test asserts requests stay on 127.0.0.1.
+Python tests cover policy decisions, invalid destinations, synthetic secret/file handling, CSRF session/origin/token enforcement, CORS authentication/headers and unchanged protection of unrelated routes. Optional Playwright checks cover all 13 practical assessments, actual credentialed cross-origin read/write behavior, unrestricted lesson access, reload persistence, XSS isolation and mobile layouts. The browser test asserts requests stay on 127.0.0.1.
 
 References: [MDN CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS), [OWASP CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [OWASP SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html).
