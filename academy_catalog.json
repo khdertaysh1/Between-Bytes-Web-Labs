@@ -11,8 +11,8 @@
       "en": "The server trusts a submitted unit price instead of its product catalog."
     },
     "fix": {
-      "ar": "استخرج السعر من الكتالوج على الخادم؛ لا تقبل سعراً من المتصفح.",
-      "en": "Resolve the price from the server catalog; ignore client prices."
+      "ar": "استخرج السعر من الكتالوج على الخادم؛ لا تقبل سعراً من المتصفح. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Resolve the price from the server catalog; ignore client prices. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "price": 10000
@@ -27,11 +27,11 @@
         "en": "The Web Security Course catalog price is $100. The browser sends price=10000 in cents while updating the quote. You are not changing the catalog; you are testing whether the server mistakes a browser value for an authoritative price."
       },
       "interpretation": {
-        "ar": "قارن items[0].unit_amount وtotals.amount_due مع سعر الكتالوج. وصول الإجمالي إلى 1 سنت يثبت تلاعباً بعرض السعر؛ لا يثبت تحصيلاً ناجحاً أو شراءً مجانياً.",
-        "en": "Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase."
+        "ar": "قارن items[0].unit_amount وtotals.amount_due مع سعر الكتالوج. وصول الإجمالي إلى 1 سنت يثبت تلاعباً بعرض السعر؛ لا يثبت تحصيلاً ناجحاً أو شراءً مجانياً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "unit_price = body[\"price\"]",
-      "fixed_code": "unit_price = catalog[\"SEC-COURSE\"].price"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\nunit_price = catalog[\"SEC-COURSE\"].price"
     }
   },
   {
@@ -81,8 +81,8 @@
       "en": "The browser supplies a discount percentage that changes the amount due."
     },
     "fix": {
-      "ar": "احسب الخصم من حملة مخزنة على الخادم بحد أعلى معروف.",
-      "en": "Resolve campaign discounts on the server with a defined ceiling."
+      "ar": "احسب الخصم من حملة مخزنة على الخادم بحد أعلى معروف. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Resolve campaign discounts on the server with a defined ceiling. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "discount": 0
@@ -97,11 +97,11 @@
         "en": "The cart supports campaign discounts. The UI displays a percentage but cannot authorize it. Posting discount=100 tests whether the pricing service takes discount policy from the client."
       },
       "interpretation": {
-        "ar": "تابع totals.discount والإجمالي المستحق. إجمالي صفر في هذه الحالة خطأ تسعير؛ لا توجد دفعة مزود ولا إنشاء استحقاق تحميل من تغيير السعر وحده.",
-        "en": "Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download."
+        "ar": "تابع totals.discount والإجمالي المستحق. إجمالي صفر في هذه الحالة خطأ تسعير؛ لا توجد دفعة مزود ولا إنشاء استحقاق تحميل من تغيير السعر وحده. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "discount = body[\"discount\"]",
-      "fixed_code": "discount = active_campaign.allowed_discount(customer)"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\ndiscount = active_campaign.allowed_discount(customer)"
     }
   },
   {
@@ -134,8 +134,8 @@
         "en": "WELCOME grants a $20 discount once per customer. Redeem it repeatedly within one round. The bounded repeat field schedules multiple local operations so you can inspect repeated-request effects."
       },
       "interpretation": {
-        "ar": "كل استهلاك يظهر كمعاملة coupon_redeemed. في الضعيفة يستمر العداد والخصم بالزيادة. في المُصلحة يبقى redemptions=1 وتبقى الفاتورة 80 دولاراً، حتى لو رجع الطلب المتكرر 200.",
-        "en": "Each redemption creates a coupon_redeemed transaction. The vulnerable ledger keeps increasing both the count and discount. The fix keeps redemptions=1 and the quote at $80, even when a repeated request returns 200."
+        "ar": "كل استهلاك مقبول يظهر كمعاملة coupon_redeemed. الضعيفة تسمح بتكرار الخصم. المُصلحة تعيد 409 إذا كانت كل العمليات مرفوضة، و207 إذا نجحت الأولى ورُفضت الثانية، مع حالة كل عملية في operations. لا يتجاوز الاستهلاك مرة واحدة. ابدأ بطلب سليم واحد قبل تجربة إعادة الاستخدام.",
+        "en": "Each accepted redemption creates a coupon_redeemed transaction. The vulnerable path repeats the discount. The fix returns 409 when every operation is rejected and 207 when one succeeds and another is rejected, with per-operation statuses in operations. Redemption never exceeds one. Start with one valid redemption before testing reuse."
       },
       "bad_code": "apply_discount(code)  # no redemption record",
       "fixed_code": "atomic: redeem_once(customer_id, coupon_id)"
@@ -188,8 +188,8 @@
       "en": "Converting a tiny decimal charge into integer units can produce zero."
     },
     "fix": {
-      "ar": "استخدم وحدات نقدية صحيحة وسعر الكتالوج؛ ارفض المبالغ الخارجة عن العقد.",
-      "en": "Use integer minor units and catalog prices; reject values outside the contract."
+      "ar": "استخدم وحدات نقدية صحيحة وسعر الكتالوج؛ ارفض المبالغ الخارجة عن العقد. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Use integer minor units and catalog prices; reject values outside the contract. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "amount": "100.00"
@@ -204,11 +204,11 @@
         "en": "A legacy interface accepts amount as a decimal string while accounting uses cents. Truncating 0.004 to integer minor units produces zero."
       },
       "interpretation": {
-        "ar": "الاختبار يقارن amount_due مع سعر الكتالوج 10000. استخدم كذلك 99.999 لفهم الاقتطاع. الحل ليس إضافة round عشوائياً؛ يجب منع العميل من تحديد سعر المنتج وربط كل واجهة بوحدة نقدية معلنة.",
-        "en": "Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit."
+        "ar": "الاختبار يقارن amount_due مع سعر الكتالوج 10000. استخدم كذلك 99.999 لفهم الاقتطاع. الحل ليس إضافة round عشوائياً؛ يجب منع العميل من تحديد سعر المنتج وربط كل واجهة بوحدة نقدية معلنة. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "amount_minor = int(Decimal(body[\"amount\"]) * 100)",
-      "fixed_code": "amount_minor = catalog_price_minor  # integer contract"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\namount_minor = catalog_price_minor  # integer contract"
     }
   },
   {
@@ -223,8 +223,8 @@
       "en": "The server stores a posted total without recomputing line items."
     },
     "fix": {
-      "ar": "أعد حساب الإجمالي من البنود والشحن والضرائب على الخادم.",
-      "en": "Recompute line items, shipping and tax on the server."
+      "ar": "أعد حساب الإجمالي من البنود والشحن والضرائب على الخادم. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Recompute line items, shipping and tax on the server. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "total": 10000
@@ -239,11 +239,11 @@
         "en": "The browser adds cart lines and displays total before confirmation. This number is presentation data. The server must compute line prices, quantities and trusted fees rather than persist the posted sum."
       },
       "interpretation": {
-        "ar": "غير total إلى صفر ثم اقرأ الطلب من جديد. تغيّر totals.amount_due مع بقاء بند الدورة بقيمة 10000 يثبت عدم اتساق داخل نفس الطلب. لا تعتبر اختلاف واجهة العرض وحده دليلاً كافياً.",
-        "en": "Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence."
+        "ar": "غير total إلى صفر ثم اقرأ الطلب من جديد. تغيّر totals.amount_due مع بقاء بند الدورة بقيمة 10000 يثبت عدم اتساق داخل نفس الطلب. لا تعتبر اختلاف واجهة العرض وحده دليلاً كافياً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "order.total = body[\"total\"]",
-      "fixed_code": "order.total = sum(trusted_lines) + shipping + tax - discount"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\norder.total = sum(trusted_lines) + shipping + tax - discount"
     }
   },
   {
@@ -258,8 +258,8 @@
       "en": "An editable shipping field removes a required fee."
     },
     "fix": {
-      "ar": "استخرج رسوم الشحن من طريقة شحن موثوقة.",
-      "en": "Resolve fees from a trusted shipping method."
+      "ar": "استخرج رسوم الشحن من طريقة شحن موثوقة. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Resolve fees from a trusted shipping method. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "shipping": 1000
@@ -274,11 +274,11 @@
         "en": "This cart has a fixed $10 delivery charge. Shipping should come from pricing policy and the selected delivery method, not a hidden form field. Test removal with shipping=0."
       },
       "interpretation": {
-        "ar": "الدليل هو إجمالي 100 دولار بدل 110 مع بقاء خدمة التوصيل نفسها. المُصلحة تحتسب الرسم مجدداً. لا تطبق هذه القاعدة بشكل أعمى على منتجات رقمية أو عروض شحن مجاني.",
-        "en": "Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix recalculates the fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers."
+        "ar": "الدليل هو إجمالي 100 دولار بدل 110 مع بقاء خدمة التوصيل نفسها. المُصلحة ترفض الرسم المخالف. لا تطبق هذه القاعدة بشكل أعمى على منتجات رقمية أو عروض شحن مجاني. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix rejects the mismatched fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "shipping = body[\"shipping\"]",
-      "fixed_code": "shipping = delivery_policy.quote(selected_method)"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\nshipping = delivery_policy.quote(selected_method)"
     }
   },
   {
@@ -293,8 +293,8 @@
       "en": "The server trusts the submitted tax value."
     },
     "fix": {
-      "ar": "احسب الضريبة وفق بيانات الطلب الموثوقة.",
-      "en": "Calculate tax from trusted order data."
+      "ar": "احسب الضريبة وفق بيانات الطلب الموثوقة. ارفض القيمة المخالفة بـ422 قبل حفظ أي تغيير.",
+      "en": "Calculate tax from trusted order data. Reject mismatches with 422 before persisting any mutation."
     },
     "normal": {
       "tax": 1000
@@ -309,11 +309,11 @@
         "en": "This exercise uses a fixed $10 tax to keep the policy inspectable. A client may submit a displayed value but cannot decide whether the transaction is exempt. Test tax=0 against the same order."
       },
       "interpretation": {
-        "ar": "افحص totals.tax والإجمالي. التطبيق الحقيقي يحتاج حساب ضريبة حسب الولاية والمنتج والإعفاءات الموثقة؛ هذه الحالة لا تنفذ نظام ضرائب قانونياً كاملاً.",
-        "en": "Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system."
+        "ar": "افحص totals.tax والإجمالي. التطبيق الحقيقي يحتاج حساب ضريبة حسب الولاية والمنتج والإعفاءات الموثقة؛ هذه الحالة لا تنفذ نظام ضرائب قانونياً كاملاً. القيمة المخالفة تُرفض في المُصلحة بـHTTP 422 قبل أي تغيير؛ يبقى revision والسجل كما هما. الطلب الصحيح يُقبل بـ200.",
+        "en": "Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200."
       },
       "bad_code": "tax = body[\"tax\"]",
-      "fixed_code": "tax = tax_policy.calculate(trusted_order_context)"
+      "fixed_code": "require_submitted_value_matches_server_contract()  # 422, no mutation\ntax = tax_policy.calculate(trusted_order_context)"
     }
   },
   {
@@ -527,8 +527,8 @@
         "en": "A gift card holds $100 and two workers each try to spend $60. To reproduce the concurrency error deterministically, the vulnerable schedule gives both workers the same pre-debit balance."
       },
       "interpretation": {
-        "ar": "النتيجة غير المسموحة: رصيد -20 دولاراً ومعاملتا gift_debited. المُصلحة تسمح بعملية واحدة ويبقى 40 دولاراً. هذا ترتيب زمني حتمي وليس اختبار قفل قاعدة بيانات أو إثبات مقاومة للتزامن في خادم موزع.",
-        "en": "The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers."
+        "ar": "النتيجة غير المسموحة: رصيد -20 دولاراً ومعاملتا gift_debited. المُصلحة تسمح بعملية واحدة ويبقى 40 دولاراً. هذا ترتيب زمني حتمي وليس اختبار قفل قاعدة بيانات أو إثبات مقاومة للتزامن في خادم موزع. إذا قُبلت عملية ورُفضت أخرى تكون النتيجة 207 مع تفصيل العمليات؛ رفض الجميع يرجع 409.",
+        "en": "The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers. One accepted and one rejected debit returns 207 with operation details; rejecting every debit returns 409."
       },
       "bad_code": "balance_snapshot = balance\nfor worker: if snapshot >= spend: debit(spend)",
       "fixed_code": "atomic: if current_balance >= spend: decrement(spend)"

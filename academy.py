@@ -56,6 +56,8 @@ class Academy:
         allowed = set(CASES[case]['normal']) | set(CASES[case]['attack'])
         if set(data) - allowed:
             raise ValueError('Unsupported fields: ' + ', '.join(sorted(set(data) - allowed)))
+        if case.startswith('pay-') and set(CASES[case]['normal'])-set(data):
+            raise ValueError('Missing required fields: '+', '.join(sorted(set(CASES[case]['normal'])-set(data))))
         state = self.states.setdefault((case, mode), {})
         fixed = mode == 'fixed'
         if case.startswith('pay-'):

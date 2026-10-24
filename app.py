@@ -132,7 +132,7 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             parsed = urlsplit(self.path)
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.9','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.9.1','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})

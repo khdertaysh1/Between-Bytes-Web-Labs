@@ -77,6 +77,35 @@ class HttpContractTests(unittest.TestCase):
         status,paid,_=self.call(path,{'payment':'settled-order100'})
         self.assertEqual(status,200);self.assertEqual(paid['data']['order']['status'],'paid')
         self.assertEqual(self.resource('pay-binding','fixed')[1]['data']['entitlements']['downloads'],1)
+    def test_all_sixteen_payment_http_statuses_and_unchanged_rejections(self):
+        expected={'price':422,'quantity':422,'discount':422,'coupon-reuse':409,'currency':409,'rounding':422,'total':422,'shipping':422,'tax':422,'status':409,'webhook':401,'binding':409,'replay':200,'gift':409,'refund':409,'trial':409}
+        for case in (row for row in CATALOG if row['group']=='payment'):
+            id=case['id'];path='/academy/api/payment/'+id
+            with self.subTest(case=id):
+                self.assertEqual(self.call(path+'/vulnerable',case['attack'])[0],200)
+                self.assertEqual(self.call(path+'/fixed',case['normal'])[0],200)
+                before=self.resource(id,'fixed')
+                status,body,headers=self.call(path+'/fixed',case['attack'])
+                self.assertEqual(status,expected[id[4:]],body)
+                after=self.resource(id,'fixed')
+                self.assertEqual(before[1],after[1],id+' changed state after rejection/replay')
+                self.assertEqual(before[2]['ETag'],after[2]['ETag'])
+                self.assertEqual(body['data']['outcome'],'duplicate_ignored' if id=='pay-replay' else 'rejected')
+                self.assertEqual(headers['X-Request-ID'],body['request_id'])
+
+    def test_partial_batches_report_each_operation_not_a_blanket_200(self):
+        for id,request in [('pay-coupon-reuse',{'coupon':'WELCOME','repeat':2}),('pay-gift',{'spend':6000,'repeat':2})]:
+            status,body,_=self.call('/academy/api/payment/'+id+'/fixed',request)
+            self.assertEqual(status,207);self.assertEqual(body['data']['outcome'],'partial')
+            self.assertEqual([op['status'] for op in body['data']['operations']],[200,409])
+        self.assertEqual(self.resource('pay-gift','fixed')[1]['data']['gift_card']['balance'],4000)
+
+    def test_missing_fields_and_subcent_amounts_are_rejected(self):
+        for case in (row for row in CATALOG if row['group']=='payment'):
+            self.assertEqual(self.call('/academy/api/payment/'+case['id']+'/fixed',{})[0],400,case['id'])
+        for value in ['100.004','99.999','0.004']:
+            self.assertEqual(self.call('/academy/api/payment/pay-rounding/fixed',{'amount':value})[0],422)
+
     def test_rate_headers_and_access_denial_do_not_leak_private_content(self):
         for _ in range(4):status,body,headers=self.call('/academy/api/rate/rate-case/fixed',{'account':'alice@example.test','attempts':1})
         self.assertEqual(status,429);self.assertEqual(headers['Retry-After'],'60');self.assertEqual(headers['RateLimit-Remaining'],'0');self.assertEqual(body['error']['code'],'rate_limit_exceeded')

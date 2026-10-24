@@ -1,4 +1,20 @@
-# Between Bytes · Five application labs · 0.9
+# Between Bytes · Five application labs · 0.9.1
+
+## Payment HTTP outcomes · 0.9.1
+
+A legitimate request returns 200. Vulnerable acceptance of an invalid request is intentional. In the fixed variant:
+
+| Case | Outcome |
+|---|---|
+| Invalid price, total, discount, shipping, tax, rounding or quantity | 422; no resource mutation |
+| Currency/receipt mismatch, unsettled payment, excessive refund or reused trial | 409 |
+| Invalid event signature | 401 |
+| Used coupon / insufficient gift credit | 409 if all rejected; 207 for a partial batch with operations |
+| Valid event already processed | 200; no new entitlement or transaction |
+| Missing required fields or invalid types | 400 |
+
+A GET 200 in the readback panel does not mean the preceding POST succeeded. Inspect the POST status, error code and resource change together.
+
 
 The home page groups 50 cases into five labs: payments (16), XSS (12), authorization (10), rate limits (7) and code services (5). Open `http://127.0.0.1:8000/` or `/academy`. The original foundation rooms remain at `/foundations`. Every case is open, without points.
 
@@ -40,7 +56,7 @@ The Web Security Course catalog price is $100. The browser sends price=10000 in 
 
 The server trusts a submitted unit price instead of its product catalog.
 
-Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase.
+Compare items[0].unit_amount and totals.amount_due with the catalog price. A one-cent quote establishes price tampering, not successful settlement or a free purchase. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -51,10 +67,11 @@ unit_price = body["price"]
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 unit_price = catalog["SEC-COURSE"].price
 ```
 
-Resolve the price from the server catalog; ignore client prices.
+Resolve the price from the server catalog; ignore client prices. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -117,7 +134,7 @@ The cart supports campaign discounts. The UI displays a percentage but cannot au
 
 The browser supplies a discount percentage that changes the amount due.
 
-Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download.
+Inspect totals.discount and amount_due. A zero quote is a pricing violation here; changing a quote alone does not settle a provider payment or grant a download. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -128,10 +145,11 @@ discount = body["discount"]
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 discount = active_campaign.allowed_discount(customer)
 ```
 
-Resolve campaign discounts on the server with a defined ceiling.
+Resolve campaign discounts on the server with a defined ceiling. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -155,7 +173,7 @@ WELCOME grants a $20 discount once per customer. Redeem it repeatedly within one
 
 A one-use coupon applies repeatedly without a redemption ledger.
 
-Each redemption creates a coupon_redeemed transaction. The vulnerable ledger keeps increasing both the count and discount. The fix keeps redemptions=1 and the quote at $80, even when a repeated request returns 200.
+Each accepted redemption creates a coupon_redeemed transaction. The vulnerable path repeats the discount. The fix returns 409 when every operation is rejected and 207 when one succeeds and another is rejected, with per-operation statuses in operations. Redemption never exceeds one. Start with one valid redemption before testing reuse.
 
 Vulnerable logic:
 
@@ -234,7 +252,7 @@ A legacy interface accepts amount as a decimal string while accounting uses cent
 
 Converting a tiny decimal charge into integer units can produce zero.
 
-Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit.
+Compare amount_due with the catalog value 10000. Try 99.999 to inspect truncation too. Randomly adding round is not the fix: product prices must be server-derived and every interface must declare its monetary unit. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -245,10 +263,11 @@ amount_minor = int(Decimal(body["amount"]) * 100)
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 amount_minor = catalog_price_minor  # integer contract
 ```
 
-Use integer minor units and catalog prices; reject values outside the contract.
+Use integer minor units and catalog prices; reject values outside the contract. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -272,7 +291,7 @@ The browser adds cart lines and displays total before confirmation. This number 
 
 The server stores a posted total without recomputing line items.
 
-Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence.
+Change total to zero, then read the order again. A changed totals.amount_due alongside a 10000 course line proves an inconsistent persisted order. A changed display alone would not be sufficient evidence. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -283,10 +302,11 @@ order.total = body["total"]
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 order.total = sum(trusted_lines) + shipping + tax - discount
 ```
 
-Recompute line items, shipping and tax on the server.
+Recompute line items, shipping and tax on the server. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -310,7 +330,7 @@ This cart has a fixed $10 delivery charge. Shipping should come from pricing pol
 
 An editable shipping field removes a required fee.
 
-Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix recalculates the fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers.
+Evidence is a $100 quote instead of $110 while the delivery service is unchanged. The fix rejects the mismatched fee. Do not apply this policy blindly to digital goods or legitimate free-shipping offers. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -321,10 +341,11 @@ shipping = body["shipping"]
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 shipping = delivery_policy.quote(selected_method)
 ```
 
-Resolve fees from a trusted shipping method.
+Resolve fees from a trusted shipping method. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -348,7 +369,7 @@ This exercise uses a fixed $10 tax to keep the policy inspectable. A client may 
 
 The server trusts the submitted tax value.
 
-Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system.
+Inspect totals.tax and amount_due. A real application needs jurisdiction, product and documented exemption rules; this case does not implement a full legal tax system. The fixed endpoint rejects a mismatched value with HTTP 422 before mutation; revision and ledger remain unchanged. The legitimate control returns 200.
 
 Vulnerable logic:
 
@@ -359,10 +380,11 @@ tax = body["tax"]
 Repaired logic:
 
 ```python
+require_submitted_value_matches_server_contract()  # 422, no mutation
 tax = tax_policy.calculate(trusted_order_context)
 ```
 
-Calculate tax from trusted order data.
+Calculate tax from trusted order data. Reject mismatches with 422 before persisting any mutation.
 
 Control request:
 
@@ -586,7 +608,7 @@ A gift card holds $100 and two workers each try to spend $60. To reproduce the c
 
 Each redemption reads the same stale balance snapshot.
 
-The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers.
+The invalid result is a -$20 balance with two gift_debited entries. The fix permits one debit and leaves $40. This is a deterministic schedule, not a database-lock test or proof of concurrency safety on distributed workers. One accepted and one rejected debit returns 207 with operation details; rejecting every debit returns 409.
 
 Vulnerable logic:
 

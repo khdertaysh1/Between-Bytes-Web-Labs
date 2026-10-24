@@ -3,6 +3,13 @@ from copy import deepcopy
 from commerce import snapshot
 
 ERRORS={
+ 'pay-price':('price_mismatch','The unit price does not match the server catalog.'),
+ 'pay-total':('total_mismatch','The submitted total does not match the server-calculated total.'),
+ 'pay-discount':('discount_not_authorized','This discount is not authorized for this order.'),
+ 'pay-shipping':('shipping_mismatch','The shipping fee does not match the selected delivery method.'),
+ 'pay-tax':('tax_mismatch','The tax does not match the server-calculated tax.'),
+ 'pay-rounding':('invalid_payment_amount','The amount must exactly match the order in minor units.'),
+ 'pay-coupon-reuse':('coupon_already_redeemed','This coupon has already been redeemed by this customer.'),
  'pay-binding':('payment_order_mismatch','The payment cannot settle this order: order, currency and amount must match.'),
  'pay-status':('payment_not_settled','The provider receipt is pending; fulfilment has not been authorized.'),
  'pay-webhook':('invalid_event_signature','The payment event signature could not be verified.'),
@@ -20,10 +27,12 @@ def response(academy,case,mode,result):
     if case.startswith('pay-'):
         data=snapshot(academy.states[(case,mode)],case[4:])
         if 'idempotent_replay' in result:data['idempotent_replay']=result['idempotent_replay']
+        if 'operations' in result:data['operations']=result['operations']
+        data['outcome']='rejected' if status>=400 else 'partial' if status==207 else 'duplicate_ignored' if result.get('idempotent_replay') and result.get('applied_this_run')==0 else 'accepted'
         if 'redemptions_this_run' in result:data['redemptions_applied']=result['redemptions_this_run']
         if status>=400:
             code,message=ERRORS.get(case,('operation_rejected','The operation conflicts with the current resource state.'))
-            payload={'error':{'code':code,'message':message},'data':{'order':data['order']}}
+            payload={'error':{'code':code,'message':message},'data':{'order':data['order'],'outcome':'rejected',**({'operations':data['operations']} if 'operations' in data else {})}}
         else:payload={'data':data}
         headers['ETag']='"order100-r'+str(data['order']['revision'])+'"'
     elif case.startswith('acl-'):

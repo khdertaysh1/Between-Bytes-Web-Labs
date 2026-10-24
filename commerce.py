@@ -69,7 +69,9 @@ def execute(kind,fixed,d,state,integer,text):
                 if not value.is_finite() or abs(value)>1000000:raise ValueError('Invalid amount')
                 submitted=int(value*100)
             except InvalidOperation:raise ValueError('Invalid amount')
-            bad=submitted!=10000;due=10000 if fixed else submitted
+            bad=value!=Decimal('100.00')
+            if fixed and bad:return finish(True,status=422,amount_due_minor=order['totals']['amount_due'],catalog_unit_minor=10000,currency='USD')
+            due=10000 if fixed else submitted
         else:
             value=integer(d,kind,expected[kind]);trusted=11000 if kind in {'shipping','tax'} else 10000
             if kind=='quantity':
@@ -79,6 +81,7 @@ def execute(kind,fixed,d,state,integer,text):
             elif kind=='discount':bad=value!=0;due=10000 if fixed else 10000*(100-value)//100
             elif kind in {'shipping','tax'}:bad=value!=1000;due=trusted if fixed else 10000+value
             else:bad=value!=trusted;due=trusted if fixed else value
+            if fixed and bad:return finish(True,status=422,amount_due_minor=order['totals']['amount_due'],catalog_unit_minor=10000,currency='USD')
             if kind=='price':order['items'][0]['unit_amount']=10000 if fixed else value
         totals=order['totals']
         if kind=='shipping':totals['shipping']=1000 if fixed else value
@@ -98,14 +101,16 @@ def execute(kind,fixed,d,state,integer,text):
         return finish(bad,order_currency='USD',interpreted_currency=currency,amount_minor=10000)
     if kind=='coupon-reuse':
         if text(d,'coupon','WELCOME')!='WELCOME':raise ValueError('Unknown coupon')
-        count=integer(d,'repeat',1,1,8);applied=0
+        count=integer(d,'repeat',1,1,8);applied=0;operations=[]
         for _ in range(count):
-            if fixed and c['coupon_redemptions']>=1:continue
+            if fixed and c['coupon_redemptions']>=1:
+                operations.append({'status':409,'code':'coupon_already_redeemed'});continue
+            operations.append({'status':200,'code':'coupon_redeemed'})
             c['coupon_redemptions']+=1;applied+=1
             order['totals']['discount']=c['coupon_redemptions']*2000
             order['totals']['amount_due']=10000-order['totals']['discount'];change('coupon_redeemed',2000,code='WELCOME')
         state['used']=c['coupon_redemptions']
-        return {**r,'impact':not fixed and c['coupon_redemptions']>1,'protected':fixed and applied<count,'legitimate':fixed and count==1 and applied==1,
+        return {**r,'status':409 if fixed and applied==0 else 207 if fixed and applied<count else 200,'operations':operations,'impact':not fixed and c['coupon_redemptions']>1,'protected':fixed and applied<count,'legitimate':fixed and count==1 and applied==1,
                 'applications_total':c['coupon_redemptions'],'applied_this_run':applied,'entitlement':'discount'}
     if kind in {'status','binding','webhook'}:
         if kind=='webhook':
@@ -142,13 +147,15 @@ def execute(kind,fixed,d,state,integer,text):
         return {**r,'impact':not fixed and c['entitlements']>1,'protected':fixed and applied<count,'legitimate':fixed and count==1 and applied==1,
                 'applications_total':c['entitlements'],'applied_this_run':applied,'entitlement':'download credit','idempotent_replay':applied<count}
     if kind=='gift':
-        amount=integer(d,'spend',6000,1,10000);count=integer(d,'repeat',1,1,8);before=c['gift_balance'];accepted=0
+        amount=integer(d,'spend',6000,1,10000);count=integer(d,'repeat',1,1,8);before=c['gift_balance'];accepted=0;operations=[]
         for worker in range(count):
             available=c['gift_balance'] if fixed else before
-            if available<amount:continue
+            if available<amount:
+                operations.append({'status':409,'code':'insufficient_credit'});continue
+            operations.append({'status':200,'code':'gift_debited'})
             c['gift_balance']-=amount;accepted+=1;change('gift_debited',amount,worker=worker+1)
         state['balance']=c['gift_balance']
-        return {**r,'status':200 if accepted else 409,'impact':not fixed and c['gift_balance']<0,'protected':fixed and accepted<count,'legitimate':fixed and count==1 and accepted==1,
+        return {**r,'status':409 if accepted==0 else 207 if accepted<count else 200,'operations':operations,'impact':not fixed and c['gift_balance']<0,'protected':fixed and accepted<count,'legitimate':fixed and count==1 and accepted==1,
                 'balance_minor':c['gift_balance'],'redemptions_this_run':accepted,'schedule':'deterministic stale-read interleaving; not a live race'}
     if kind=='refund':
         amount=integer(d,'refund',1000,1,1000000);bad=order['refunded_amount']+amount>order['captured_amount']

@@ -1,3 +1,10 @@
+# v0.9.1 · Correct and explain payment HTTP outcomes
+
+- Reject mismatched fixed quote inputs with 422 before changing order state, rather than silently normalizing and returning 200. Reject sub-cent mismatches and missing required payment fields.
+- Return 409 for fully rejected coupon/gift batches and 207 with per-operation outcomes for partial batches. Retain safe 200 acknowledgements for idempotent valid event replays.
+- Label payment POST and resource GET results separately and explain accepted, rejected, partial and ignored-duplicate outcomes in both languages.
+- Cover actual HTTP statuses and unchanged resources for all 16 payment cases, plus partial batches, missing inputs and fractional amounts.
+
 # v0.9 · Grouped application labs and persisted business workflows
 
 - Replace the 50-card landing page with five labs and internal case navigation, keeping all 50 cases open. Make the academy the default home and retain the original rooms at `/foundations`.
