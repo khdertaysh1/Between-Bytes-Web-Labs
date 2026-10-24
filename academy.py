@@ -287,4 +287,4 @@ window.addEventListener('error',e=>send('academy-error',{message:e.message.slice
         sink='textContent' if fixed else 'innerHTML'
         body='<div id="output"></div><script>'+setup+'document.getElementById("output").'+sink+'='+source+';</script>'
     # Report delivery separately from execution. A timeout with no alert is not a proof of all-XSS absence.
-    return prelude+body+'<script>setTimeout(()=>send("academy-rendered",{text:document.getElementById("output")?.textContent||document.getElementById("output")?.value||"",mode:'+json.dumps(mode)+'}),450);</script>'
+    return prelude+body+'<script>setTimeout(()=>send("academy-rendered",{dom:(document.getElementById("output")?.outerHTML||"").slice(0,12000),text:document.getElementById("output")?.textContent||document.getElementById("output")?.value||"",mode:'+json.dumps(mode)+'}),450);</script>'

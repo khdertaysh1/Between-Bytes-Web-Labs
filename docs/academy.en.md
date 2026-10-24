@@ -1,4 +1,4 @@
-# Lab guide · 0.10.0
+# Lab guide · 0.11.0
 
 Nine independent labs contain 72 open cases. There are no points or locked levels. Each case explains the feature, the missing check, a short experiment and how to interpret the result. Implementation details live in an expandable repair section.
 
@@ -21,7 +21,7 @@ In SSRF, inspect `trace` and private content. A rejected destination must not re
 
 ## Evidence boundaries
 
-The four request-security labs are closed policy simulations. Origin, credentials, tokens and DNS results are teaching inputs, not genuine browser headers or network behavior. They are not proof of a real CSRF/CORS exploit, DNS rebinding or SameSite bypass. No URLs shown in these cases are fetched. SQL runs against real in-memory SQLite; XSS previews run in an isolated browser frame. Evidence labels distinguish these modes.
+The JSON exercises in the four request-security labs are closed policy simulations. Origin, credentials, tokens and DNS results are teaching inputs, not genuine browser headers or network behavior. They are not proof of a real CSRF/CORS exploit, DNS rebinding or SameSite bypass. No URLs shown in these cases are fetched. SQL runs against real in-memory SQLite; XSS previews run in an isolated browser frame. Evidence labels distinguish these modes.
 
 ## Run and update
 
@@ -34,4 +34,8 @@ git pull --ff-only origin main
 python app.py --port 8002
 ```
 
-Open http://127.0.0.1:8002/ and verify version 0.10.0 with nine lab cards. The old UI is removed; `/foundations` redirects to the current interface.
+Open http://127.0.0.1:8002/ and verify version 0.11.0 with nine lab cards. The old UI is removed; `/foundations` redirects to the current interface.
+
+## Hands-on workspace
+
+All 72 cases include editable typed fields, an HTTP request editor, replay/comparison, encoding tools and effect inspection. Companion browser practice adds real CSRF requests for all six CSRF cases and a real CORS origin-reflection exercise, separate from JSON-policy evidence. See the [workspace guide](studio.en.md).

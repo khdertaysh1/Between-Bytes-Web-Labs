@@ -13,6 +13,7 @@ from academy_http import response as academy_response
 from commerce import snapshot as checkout_snapshot
 from advanced import exercise
 from browser_labs import initialize, authenticated, csrf_write, LabServer, Sidecar
+from studio_browser import handle as studio_handle, TARGET_JS, TARGET_CSS
 from training import access_lesson, preview_document, PREVIEW_CSP
 
 def strict_json(value):
@@ -124,7 +125,8 @@ def handler_for(labs):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             for key,value in (headers or {}).items():
-                self.send_header(key,value)
+                
+                for item in (value if isinstance(value,list) else [value]):self.send_header(key,item)
             sidecar=getattr(self.server,"sidecar",None)
             frames=" frame-src 'self' http://127.0.0.1:"+str(sidecar.server_port)+";" if sidecar else ""
             self.send_header("Content-Security-Policy", csp or "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; form-action 'self';"+frames)
@@ -143,13 +145,16 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             try:parsed=urlsplit(self.path)
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            if studio_handle(self,context,parsed,'GET'):return
+            if parsed.path in {'/studio-target.js','/studio-target.css'}:
+                return self.reply(200,(TARGET_JS if parsed.path.endswith('.js') else TARGET_CSS).encode(),'text/javascript; charset=utf-8' if parsed.path.endswith('.js') else 'text/css; charset=utf-8')
             get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
             if get_api:
                 group,case,mode=get_api.groups()
                 if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.10.0','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.11.0','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
@@ -219,7 +224,7 @@ def handler_for(labs):
             if parsed.path == '/foundations':
                 return self.reply(308,b'',"text/plain",headers={'Location':'/academy'})
             files = {"/": ("academy.html", "text/html; charset=utf-8")}
-            files.update({'/academy':('academy.html','text/html; charset=utf-8'), '/academy.js':('academy.js','text/javascript; charset=utf-8'), '/academy.css':('academy.css','text/css; charset=utf-8')})
+            files.update({'/academy':('academy.html','text/html; charset=utf-8'), '/academy.js':('academy.js','text/javascript; charset=utf-8'), '/academy.css':('academy.css','text/css; charset=utf-8'), '/studio.js':('studio.js','text/javascript; charset=utf-8'), '/studio.css':('studio.css','text/css; charset=utf-8')})
             if self.path in files:
                 name, mime = files[self.path]
                 return self.reply(200, Path(__file__).with_name(name).read_bytes(), mime)
@@ -233,6 +238,9 @@ def handler_for(labs):
             state=context.labs if context else labs
             if not self.valid_host():
                 return self.reply(403, {"error": "Invalid host"})
+            try:studio_url=urlsplit(self.path)
+            except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            if studio_handle(self,context,studio_url,'POST'):return
             origin = self.headers.get("Origin")
             expected = "http://127.0.0.1:" + str(self.server.server_port)
             csrf_route=self.path in {"/browser/csrf/vulnerable","/browser/csrf/fixed"}

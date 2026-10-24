@@ -7,6 +7,7 @@ import re
 import secrets
 import threading
 from urllib.parse import parse_qs, urlsplit
+from studio_browser import page_document
 
 
 def initialize(labs):
@@ -69,6 +70,17 @@ class Sidecar(HTTPServer):
                     self.send_error(403);return
                 try:
                     url=urlsplit(self.path);q=parse_qs(url.query,max_num_fields=5)
+                    if url.path.startswith('/studio/page/'):
+                        parts=url.path.strip('/').split('/')
+                        context=main.room_sessions.resolve(self.headers.get('Cookie'))
+                        studio=getattr(context,'studio',None)
+                        source=studio.documents.get(parts[3]) if studio and len(parts)==4 and parts[2]==studio.id else None
+                        if source is None:
+                            self.send_error(404);return
+                        body=page_document(source,main_origin,parts[3],q.get('lang',['ar'])[0]).encode()
+                        self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Length',str(len(body)));self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff')
+                        self.send_header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src "+main_origin+"; form-action "+main_origin+"; frame-src 'none'; frame-ancestors "+main_origin+"; base-uri 'none'")
+                        self.end_headers();self.wfile.write(body);return
                     action=q.get('action',[''])[0];mode=q.get('mode',[''])[0];value=q.get('value',[''])[0];nonce=q.get('nonce',[''])[0]
                     if url.path!='/attack' or action not in {'csrf','cors'} or mode not in {'vulnerable','fixed'} or len(value)>80 or not re.fullmatch('[a-f0-9]{32}',nonce):
                         raise ValueError('Invalid input')
