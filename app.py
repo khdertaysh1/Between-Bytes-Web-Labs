@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 from urllib.parse import parse_qs, urlsplit
 from rooms import RoomSessions, ROOMS
+from academy import Academy, CATALOG as ACADEMY_CATALOG, preview_document as academy_preview
 from advanced import exercise
 from browser_labs import initialize, authenticated, csrf_write, LabServer, Sidecar
 from training import access_lesson, preview_document, PREVIEW_CSP
@@ -86,6 +87,14 @@ def handler_for(labs):
         def room_context(self):
             return self.server.room_sessions.resolve(self.headers.get('Cookie'))
 
+        def academy(self):
+            context = self.room_context()
+            if context is None:
+                return None
+            if not hasattr(context, "academy"):
+                context.academy = Academy()
+            return context.academy
+
         def log_message(self, *args):
             pass
 
@@ -119,6 +128,15 @@ def handler_for(labs):
             if not self.valid_host():
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             parsed = urlsplit(self.path)
+            if parsed.path == '/academy/catalog':
+                return self.reply(200, {'version':'0.8','cases':ACADEMY_CATALOG})
+            if parsed.path.startswith('/academy/preview/'):
+                academy = self.academy()
+                token = parsed.path.rsplit('/',1)[-1]
+                entry = academy.previews.get(token) if academy else None
+                if entry is None:
+                    return self.reply(404, {'error':'Preview expired; run the local case again'})
+                return self.reply(200, academy_preview(*entry).encode(), 'text/html; charset=utf-8', PREVIEW_CSP)
             if parsed.path == '/rooms/session':
                 try:
                     key,room=self.server.room_sessions.create(self.headers.get('Cookie'))
@@ -163,6 +181,7 @@ def handler_for(labs):
                 except ValueError:
                     return self.reply(400, {"error": "Invalid preview"})
             files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/rooms_ui.js": ("rooms_ui.js", "text/javascript; charset=utf-8"), "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"), "/english.js": ("english.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
+            files.update({'/academy':('academy.html','text/html; charset=utf-8'), '/academy.js':('academy.js','text/javascript; charset=utf-8'), '/academy.css':('academy.css','text/css; charset=utf-8')})
             if self.path in files:
                 name, mime = files[self.path]
                 return self.reply(200, Path(__file__).with_name(name).read_bytes(), mime)
@@ -192,6 +211,20 @@ def handler_for(labs):
                 form = parse_qs(self.rfile.read(size).decode("utf-8"), max_num_fields=8)
             except (ValueError, UnicodeError):
                 return self.reply(400, {"error": "Malformed request"})
+            if self.path in {'/academy/run','/academy/reset'}:
+                academy = self.academy()
+                if academy is None:return self.reply(401,{'error':'Start a classroom session'})
+                case=form.get('case',[''])[0]
+                try:
+                    if case not in {row['id'] for row in ACADEMY_CATALOG}:raise ValueError('Unknown scenario')
+                    if self.path == '/academy/reset':
+                        academy.reset(case)
+                        return self.reply(200,{'reset':case})
+                    data=json.loads(form.get('input',['{}'])[0])
+                    result=academy.run(case,form.get('mode',[''])[0],data)
+                    return self.reply(200,result)
+                except (ValueError,TypeError,RecursionError) as error:
+                    return self.reply(400,{'error':str(error)[:200]})
             if csrf_route:
                 self.room_event={'lesson':'csrf','mode':self.path.split('/')[-1],'details':{'cross_origin':origin!=expected}}
                 status,result=csrf_write(state,self.path.split('/')[-1],origin,expected,self.headers.get('Cookie'),form.get('note',[''])[0],form.get('csrf_token',[''])[0])

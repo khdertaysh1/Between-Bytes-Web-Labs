@@ -1,0 +1,1660 @@
+[
+  {
+    "id": "pay-price",
+    "group": "payment",
+    "title": {
+      "ar": "الثقة بسعر العميل",
+      "en": "Client-controlled price"
+    },
+    "cause": {
+      "ar": "الخادم يأخذ سعر الوحدة من الطلب بدلاً من كتالوج المنتجات.",
+      "en": "The server trusts a submitted unit price instead of its product catalog."
+    },
+    "fix": {
+      "ar": "استخرج السعر من الكتالوج على الخادم؛ لا تقبل سعراً من المتصفح.",
+      "en": "Resolve the price from the server catalog; ignore client prices."
+    },
+    "normal": {
+      "price": 10000
+    },
+    "attack": {
+      "price": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-quantity",
+    "group": "payment",
+    "title": {
+      "ar": "الكمية السالبة",
+      "en": "Negative quantities"
+    },
+    "cause": {
+      "ar": "كمية سالبة تحوّل فاتورة إلى رصيد وهمي.",
+      "en": "A negative quantity turns a charge into synthetic credit."
+    },
+    "fix": {
+      "ar": "اقبل كمية صحيحة بين 1 و10 قبل الحساب.",
+      "en": "Require an integer quantity between 1 and 10 before arithmetic."
+    },
+    "normal": {
+      "quantity": 1
+    },
+    "attack": {
+      "quantity": -1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-discount",
+    "group": "payment",
+    "title": {
+      "ar": "خصم يحدده العميل",
+      "en": "Client-controlled discount"
+    },
+    "cause": {
+      "ar": "نسبة الخصم القادمة من المتصفح تغيّر المبلغ المستحق.",
+      "en": "The browser supplies a discount percentage that changes the amount due."
+    },
+    "fix": {
+      "ar": "احسب الخصم من حملة مخزنة على الخادم بحد أعلى معروف.",
+      "en": "Resolve campaign discounts on the server with a defined ceiling."
+    },
+    "normal": {
+      "discount": 0
+    },
+    "attack": {
+      "discount": 100
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-coupon-reuse",
+    "group": "payment",
+    "title": {
+      "ar": "إعادة استخدام قسيمة",
+      "en": "Coupon reuse"
+    },
+    "cause": {
+      "ar": "القسيمة تعمل أكثر من مرة دون سجل استهلاك.",
+      "en": "A one-use coupon applies repeatedly without a redemption ledger."
+    },
+    "fix": {
+      "ar": "سجّل الاستهلاك ذرياً لكل حساب وقسيمة؛ حافظ على المحاولة الأولى الصحيحة.",
+      "en": "Atomically record redemption by account and coupon; retain the valid first use."
+    },
+    "normal": {
+      "coupon": "WELCOME",
+      "repeat": 1
+    },
+    "attack": {
+      "coupon": "WELCOME",
+      "repeat": 2
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-currency",
+    "group": "payment",
+    "title": {
+      "ar": "تبديل العملة",
+      "en": "Currency mismatch"
+    },
+    "cause": {
+      "ar": "تفسير المبلغ نفسه بعملة مختلفة يفصل الطلب عن دفعة المزود.",
+      "en": "An amount interpreted in a different currency separates the order from provider settlement."
+    },
+    "fix": {
+      "ar": "اربط مبلغ المزود وعملته بعملة الطلب المسجلة.",
+      "en": "Bind provider amount and currency to the stored order."
+    },
+    "normal": {
+      "currency": "USD"
+    },
+    "attack": {
+      "currency": "JPY"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-rounding",
+    "group": "payment",
+    "title": {
+      "ar": "تحويل الوحدات والتقريب",
+      "en": "Minor-unit rounding"
+    },
+    "cause": {
+      "ar": "تحويل عدد عشري صغير إلى وحدات صحيحة قد ينتج صفراً.",
+      "en": "Converting a tiny decimal charge into integer units can produce zero."
+    },
+    "fix": {
+      "ar": "استخدم وحدات نقدية صحيحة وسعر الكتالوج؛ ارفض المبالغ الخارجة عن العقد.",
+      "en": "Use integer minor units and catalog prices; reject values outside the contract."
+    },
+    "normal": {
+      "amount": "100.00"
+    },
+    "attack": {
+      "amount": "0.004"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-total",
+    "group": "payment",
+    "title": {
+      "ar": "الإجمالي المحسوب بالواجهة",
+      "en": "Browser-calculated total"
+    },
+    "cause": {
+      "ar": "الخادم يحفظ الإجمالي المرسل دون إعادة جمع البنود.",
+      "en": "The server stores a posted total without recomputing line items."
+    },
+    "fix": {
+      "ar": "أعد حساب الإجمالي من البنود والشحن والضرائب على الخادم.",
+      "en": "Recompute line items, shipping and tax on the server."
+    },
+    "normal": {
+      "total": 10000
+    },
+    "attack": {
+      "total": 0
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-shipping",
+    "group": "payment",
+    "title": {
+      "ar": "إلغاء رسوم الشحن",
+      "en": "Shipping fee tampering"
+    },
+    "cause": {
+      "ar": "حقل شحن قابل للتعديل يلغي رسماً لازماً.",
+      "en": "An editable shipping field removes a required fee."
+    },
+    "fix": {
+      "ar": "استخرج رسوم الشحن من طريقة شحن موثوقة.",
+      "en": "Resolve fees from a trusted shipping method."
+    },
+    "normal": {
+      "shipping": 1000
+    },
+    "attack": {
+      "shipping": 0
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-tax",
+    "group": "payment",
+    "title": {
+      "ar": "إسقاط الضريبة",
+      "en": "Tax field tampering"
+    },
+    "cause": {
+      "ar": "الخادم يصدّق قيمة الضريبة المرسلة.",
+      "en": "The server trusts the submitted tax value."
+    },
+    "fix": {
+      "ar": "احسب الضريبة وفق بيانات الطلب الموثوقة.",
+      "en": "Calculate tax from trusted order data."
+    },
+    "normal": {
+      "tax": 1000
+    },
+    "attack": {
+      "tax": 0
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-status",
+    "group": "payment",
+    "title": {
+      "ar": "تأكيد دفع من الواجهة",
+      "en": "Browser payment status"
+    },
+    "cause": {
+      "ar": "كلمة paid في طلب الواجهة تمنح الطلب حالة مدفوع.",
+      "en": "A posted paid status promotes an order without settlement."
+    },
+    "fix": {
+      "ar": "حالة الدفع تأتي من سجل مزود موثوق فقط.",
+      "en": "Payment state comes only from a trusted provider ledger."
+    },
+    "normal": {
+      "status": "paid",
+      "receipt": "settled-order100"
+    },
+    "attack": {
+      "status": "paid",
+      "receipt": "pending-order100"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-webhook",
+    "group": "payment",
+    "title": {
+      "ar": "مصدر إشعار الدفع",
+      "en": "Unverified payment event"
+    },
+    "cause": {
+      "ar": "إشعار عميل يحمل event=settled يعامل كإشعار مزود.",
+      "en": "A client event claiming settlement is treated as a provider event."
+    },
+    "fix": {
+      "ar": "تحقق من توقيع المزود خارج بيانات العميل ثم طبّق الحدث مرة واحدة.",
+      "en": "Verify provider signatures outside client data, then process once."
+    },
+    "normal": {
+      "event": "settled",
+      "signature": "DEMO_VALID_SIGNATURE"
+    },
+    "attack": {
+      "event": "settled",
+      "signature": "invalid"
+    },
+    "level": "advanced"
+  },
+  {
+    "id": "pay-binding",
+    "group": "payment",
+    "title": {
+      "ar": "ربط مبلغ الدفع بالطلب",
+      "en": "Payment amount and order binding"
+    },
+    "cause": {
+      "ar": "دفعة صحيحة لطلب رخيص تستخدم لتسوية طلب أكبر.",
+      "en": "A genuine payment for a cheap order settles a different expensive order."
+    },
+    "fix": {
+      "ar": "تحقق من معرف الطلب والمبلغ والعملة والمستفيد قبل التسوية.",
+      "en": "Verify order ID, amount, currency and merchant before settlement."
+    },
+    "normal": {
+      "payment": "settled-order100"
+    },
+    "attack": {
+      "payment": "settled-order1"
+    },
+    "level": "advanced"
+  },
+  {
+    "id": "pay-replay",
+    "group": "payment",
+    "title": {
+      "ar": "إعادة معالجة دفعة",
+      "en": "Payment event replay"
+    },
+    "cause": {
+      "ar": "تكرار حدث واحد ينشئ أكثر من استحقاق.",
+      "en": "Reprocessing one event grants multiple entitlements."
+    },
+    "fix": {
+      "ar": "استخدم مفتاح idempotency موثوقاً وسجل أحداث ذرياً.",
+      "en": "Use a trusted idempotency key and atomic event ledger."
+    },
+    "normal": {
+      "event_id": "evt-demo",
+      "repeat": 1
+    },
+    "attack": {
+      "event_id": "evt-demo",
+      "repeat": 2
+    },
+    "level": "advanced"
+  },
+  {
+    "id": "pay-refund",
+    "group": "payment",
+    "title": {
+      "ar": "الاسترداد أكثر من المدفوع",
+      "en": "Over-refund"
+    },
+    "cause": {
+      "ar": "قيمة الاسترداد لا تقارن بالرصيد المدفوع المتبقي.",
+      "en": "A refund amount is not compared with remaining captured funds."
+    },
+    "fix": {
+      "ar": "تحقق من المبلغ التراكمي للاسترداد ضمن معاملة واحدة.",
+      "en": "Check cumulative refunds against captured funds in one transaction."
+    },
+    "normal": {
+      "refund": 1000
+    },
+    "attack": {
+      "refund": 20000
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "pay-gift",
+    "group": "payment",
+    "title": {
+      "ar": "إعادة صرف رصيد هدية",
+      "en": "Gift credit double spend"
+    },
+    "cause": {
+      "ar": "عملية الصرف تقرأ نسخة قديمة من الرصيد لكل تكرار.",
+      "en": "Each redemption reads the same stale balance snapshot."
+    },
+    "fix": {
+      "ar": "اجعل الخصم والتحقق تحديثاً ذرياً؛ اختبر تعارض عاملين حقيقيين في الإنتاج.",
+      "en": "Make balance check and debit atomic; test real concurrent workers in production."
+    },
+    "normal": {
+      "spend": 6000,
+      "repeat": 1
+    },
+    "attack": {
+      "spend": 6000,
+      "repeat": 2
+    },
+    "level": "advanced"
+  },
+  {
+    "id": "pay-trial",
+    "group": "payment",
+    "title": {
+      "ar": "إعادة التجربة عبر خطة أخرى",
+      "en": "Trial eligibility across plans"
+    },
+    "cause": {
+      "ar": "الأهلية مربوطة باسم الخطة بدلاً من هوية الاشتراك.",
+      "en": "Eligibility is keyed only by plan name instead of subscription identity."
+    },
+    "fix": {
+      "ar": "وحّد استحقاق التجربة عبر الخطط لنفس الحساب ووسيلة الدفع الوهمية.",
+      "en": "Share trial entitlement across plans for the same synthetic account and payment identity."
+    },
+    "normal": {
+      "plan": "basic",
+      "purchase": "paid"
+    },
+    "attack": {
+      "plan": "premium",
+      "purchase": "trial"
+    },
+    "level": "advanced"
+  },
+  {
+    "id": "acl-read",
+    "group": "access",
+    "title": {
+      "ar": "قراءة مورد مستخدم آخر",
+      "en": "Read another user’s object"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من الملكية.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits ownership."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من الملكية قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce ownership before reading or changing state."
+    },
+    "normal": {
+      "object": "a-1"
+    },
+    "attack": {
+      "object": "b-1"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-write",
+    "group": "access",
+    "title": {
+      "ar": "تعديل مورد مستخدم آخر",
+      "en": "Update another user’s object"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية التعديل.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits write permission."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من صلاحية التعديل قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce write permission before reading or changing state."
+    },
+    "normal": {
+      "object": "a-1",
+      "note": "updated"
+    },
+    "attack": {
+      "object": "b-1",
+      "note": "updated"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-delete",
+    "group": "access",
+    "title": {
+      "ar": "حذف مورد مستخدم آخر",
+      "en": "Delete another user’s object"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية الحذف.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits delete permission."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من صلاحية الحذف قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce delete permission before reading or changing state."
+    },
+    "normal": {
+      "object": "a-1"
+    },
+    "attack": {
+      "object": "b-1"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-nested",
+    "group": "access",
+    "title": {
+      "ar": "معرف فرعي خارج الأب",
+      "en": "Nested object mismatch"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من علاقة المورد الفرعي بالأب.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits parent-child relationship."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من علاقة المورد الفرعي بالأب قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce parent-child relationship before reading or changing state."
+    },
+    "normal": {
+      "parent": "alice",
+      "child": "a-1"
+    },
+    "attack": {
+      "parent": "alice",
+      "child": "b-1"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-tenant",
+    "group": "access",
+    "title": {
+      "ar": "تجاوز حدود المؤسسة",
+      "en": "Tenant isolation"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من مؤسسة الجلسة.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits session tenant."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من مؤسسة الجلسة قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce session tenant before reading or changing state."
+    },
+    "normal": {
+      "tenant": "north",
+      "object": "a-1"
+    },
+    "attack": {
+      "tenant": "south",
+      "object": "c-1"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-batch",
+    "group": "access",
+    "title": {
+      "ar": "صلاحيات كل عنصر بالمجموعة",
+      "en": "Per-item batch authorization"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من ملكية كل عنصر.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits ownership of every item."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من ملكية كل عنصر قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce ownership of every item before reading or changing state."
+    },
+    "normal": {
+      "objects": [
+        "a-1"
+      ]
+    },
+    "attack": {
+      "objects": [
+        "a-1",
+        "b-1"
+      ]
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-export",
+    "group": "access",
+    "title": {
+      "ar": "تصدير مهمة لشخص آخر",
+      "en": "Export job ownership"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من ملكية مهمة التصدير.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits export job ownership."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من ملكية مهمة التصدير قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce export job ownership before reading or changing state."
+    },
+    "normal": {
+      "job": "export-alice"
+    },
+    "attack": {
+      "job": "export-bob"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-download",
+    "group": "access",
+    "title": {
+      "ar": "معرف ملف قابل للتخمين",
+      "en": "Download reference authorization"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من صلاحية الملف عند التنزيل.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits file permission at download."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من صلاحية الملف عند التنزيل قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce file permission at download before reading or changing state."
+    },
+    "normal": {
+      "file": "file-alice"
+    },
+    "attack": {
+      "file": "file-bob"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-role",
+    "group": "access",
+    "title": {
+      "ar": "الثقة بالدور في الطلب",
+      "en": "Client-supplied role"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من دور الفاعل المسجل على الخادم.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits server-stored actor role."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من دور الفاعل المسجل على الخادم قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce server-stored actor role before reading or changing state."
+    },
+    "normal": {
+      "role": "viewer",
+      "action": "view"
+    },
+    "attack": {
+      "role": "admin",
+      "action": "admin"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "acl-mass",
+    "group": "access",
+    "title": {
+      "ar": "الإسناد الجماعي لحقول محمية",
+      "en": "Mass assignment"
+    },
+    "cause": {
+      "ar": "معرفة المعرف أو إرسال حقل ليست تفويضاً. هذه الحالة لا تتحقق من قائمة الحقول القابلة للتعديل.",
+      "en": "Knowing an ID or submitting a field is not authorization. This endpoint omits an allowlist of editable fields."
+    },
+    "fix": {
+      "ar": "استخرج هوية alice ومؤسسة north من الجلسة ثم تحقق من قائمة الحقول القابلة للتعديل قبل القراءة أو التغيير.",
+      "en": "Derive alice and tenant north from the session, then enforce an allowlist of editable fields before reading or changing state."
+    },
+    "normal": {
+      "display_name": "Alice"
+    },
+    "attack": {
+      "display_name": "Alice",
+      "is_admin": true
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-xff",
+    "group": "rate",
+    "title": {
+      "ar": "ترويسة مصدر يحددها العميل",
+      "en": "Untrusted forwarded IP"
+    },
+    "cause": {
+      "ar": "المفتاح هو مصدر وهمي من حقل الطلب؛ تغييره ينشئ سلة جديدة.",
+      "en": "A source label supplied by the client creates a new bucket when changed."
+    },
+    "fix": {
+      "ar": "لا تثق بترويسات الوكيل إلا من وكيل معروف، مع ميزانية حساب مستقلة.",
+      "en": "Trust forwarding headers only from configured proxies and retain account budgets."
+    },
+    "normal": {
+      "account": "alice",
+      "source": "192.0.2.1",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "alice",
+      "source": "192.0.2.2",
+      "attempts": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-ip-pool",
+    "group": "rate",
+    "title": {
+      "ar": "توزيع المحاولات على مصادر",
+      "en": "Distributed-source budget"
+    },
+    "cause": {
+      "ar": "حتى عنوان شبكة موثوق لا يكفي وحده؛ عدة مصادر تتشارك الحساب نفسه.",
+      "en": "Even a trustworthy network source alone cannot limit attempts distributed against one account."
+    },
+    "fix": {
+      "ar": "اجمع حدود الحساب والمصدر والتحدي؛ هذا المختبر يغير تسميات فقط ولا يغير IP الجهاز.",
+      "en": "Combine account, source and challenge limits; this lab changes labels, never the device IP."
+    },
+    "normal": {
+      "account": "alice",
+      "source": "192.0.2.1",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "alice",
+      "source": "192.0.2.2",
+      "attempts": 4
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-ipv6",
+    "group": "rate",
+    "title": {
+      "ar": "تعدد كتابة عنوان IPv6",
+      "en": "IPv6 canonicalization"
+    },
+    "cause": {
+      "ar": "العنوان نفسه بصيغتين نصيتين ينتج سلتين.",
+      "en": "Two spellings of the same address create two raw-string buckets."
+    },
+    "fix": {
+      "ar": "حلل العنوان بصيغة معيارية مع ميزانية الحساب؛ لا تعتمد على مقارنة النص.",
+      "en": "Canonicalize parsed addresses and retain account budgets instead of raw-string comparison."
+    },
+    "normal": {
+      "account": "alice",
+      "source": "2001:db8::1",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "alice",
+      "source": "2001:0db8:0:0:0:0:0:1",
+      "attempts": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-case",
+    "group": "rate",
+    "title": {
+      "ar": "تطبيع هوية الحساب",
+      "en": "Account normalization"
+    },
+    "cause": {
+      "ar": "البريد يعالج دون حساسية أحرف في الدخول لكن العداد حساس للأحرف.",
+      "en": "Authentication treats this fixture email case-insensitively while its bucket does not."
+    },
+    "fix": {
+      "ar": "استعمل معرف الحساب الداخلي بعد التطبيع نفسه في التحقق والعداد.",
+      "en": "Use the internal account ID after the same normalization used by authentication."
+    },
+    "normal": {
+      "account": "alice@example.test",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "ALICE@example.test",
+      "attempts": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-route",
+    "group": "rate",
+    "title": {
+      "ar": "عداد منفصل لكل مسار",
+      "en": "Alternate-route counters"
+    },
+    "cause": {
+      "ar": "المسار القديم والجديد لا يتشاركان ميزانية المحاولات.",
+      "en": "Legacy and current routes do not share an attempt budget."
+    },
+    "fix": {
+      "ar": "شارك سياسة الحساب بين جميع نقاط تنفيذ العملية نفسها.",
+      "en": "Share an account policy across every endpoint performing the same operation."
+    },
+    "normal": {
+      "account": "alice",
+      "route": "login",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "alice",
+      "route": "legacy",
+      "attempts": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-reset",
+    "group": "rate",
+    "title": {
+      "ar": "إصدار تحد جديد يصفر المحاولات",
+      "en": "Challenge renewal resets budget"
+    },
+    "cause": {
+      "ar": "تغيير معرف التحدي ينسى محاولات الحساب السابقة.",
+      "en": "A fresh challenge ID discards the account’s earlier attempts."
+    },
+    "fix": {
+      "ar": "لا تسمح بتجديد ميزانية الحساب عند إصدار تحد جديد.",
+      "en": "Do not renew the account attempt budget when issuing a challenge."
+    },
+    "normal": {
+      "account": "alice",
+      "challenge": "one",
+      "attempts": 4
+    },
+    "attack": {
+      "account": "alice",
+      "challenge": "two",
+      "attempts": 1
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "rate-window",
+    "group": "rate",
+    "title": {
+      "ar": "حافة نافذة العد الزمنية",
+      "en": "Fixed-window boundary"
+    },
+    "cause": {
+      "ar": "ثلاث محاولات قبل حد الدقيقة وثلاث بعده تمر خلال ثانية واحدة.",
+      "en": "Three attempts just before a minute boundary and three just after pass within one second."
+    },
+    "fix": {
+      "ar": "استخدم نافذة متحركة أو token bucket ملائماً مع وقت خادم موثوق.",
+      "en": "Use a suitable rolling window or token bucket driven by trusted server time."
+    },
+    "normal": {
+      "time": 59,
+      "attempts": 3
+    },
+    "attack": {
+      "time": 60,
+      "attempts": 3
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "xss-html",
+    "group": "xss",
+    "title": {
+      "ar": "نص HTML",
+      "en": "HTML text"
+    },
+    "cause": {
+      "ar": "إدراج المدخل كعقد HTML بدلاً من نص.",
+      "en": "Input is parsed as HTML nodes instead of text."
+    },
+    "fix": {
+      "ar": "ترميز نص HTML أو textContent.",
+      "en": "HTML text encoding or textContent."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "<img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "<img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "<svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "%3Cimg%20src=x%20onerror=alert(1)%3E",
+        "expected_execution": false,
+        "note": {
+          "ar": "الترميز المئوي لا يفك تلقائياً عند إدراج HTML.",
+          "en": "Percent encoding is not automatically decoded by HTML parsing."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-attr-double",
+    "group": "xss",
+    "title": {
+      "ar": "خاصية بين علامتين مزدوجتين",
+      "en": "Double-quoted attribute"
+    },
+    "cause": {
+      "ar": "علامة الاقتباس تغلق قيمة الخاصية ثم تنشئ عنصراً جديداً.",
+      "en": "A double quote closes the attribute and introduces a new element."
+    },
+    "fix": {
+      "ar": "ترميز خاصية مقتبسة بما يشمل علامتي الاقتباس.",
+      "en": "Encode quoted attributes including both quote characters."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "\"><img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "\"><img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "\"><svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "&quot;&gt;&lt;svg onload=alert(\"BB\")&gt;",
+        "expected_execution": false,
+        "note": {
+          "ar": "كيانات الاقتباس ليست فواصل نحوية عند تحليل الخاصية.",
+          "en": "Quote entities are data, not attribute-syntax delimiters."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-attr-single",
+    "group": "xss",
+    "title": {
+      "ar": "خاصية بين علامتين مفردتين",
+      "en": "Single-quoted attribute"
+    },
+    "cause": {
+      "ar": "ترميز العلامة المزدوجة وحدها لا يحمي خاصية مفردة.",
+      "en": "Encoding only double quotes cannot protect a single-quoted attribute."
+    },
+    "fix": {
+      "ar": "اقتبس الخاصية ورمّز علامتي الاقتباس.",
+      "en": "Quote the attribute and encode both quote characters."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "'><img src=x onerror=alert('BB')>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "'><img src=x onerror=alert('BB')>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "'><svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "&#39;&gt;&lt;img src=x onerror=alert(1)&gt;",
+        "expected_execution": false,
+        "note": {
+          "ar": "ترميز محرف الاقتباس يحافظ عليه داخل القيمة.",
+          "en": "An encoded quote stays inside the attribute value."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-attr-bare",
+    "group": "xss",
+    "title": {
+      "ar": "خاصية غير مقتبسة",
+      "en": "Unquoted attribute"
+    },
+    "cause": {
+      "ar": "الفراغ أو إغلاق الوسم يغيّر بنية خاصية غير مقتبسة.",
+      "en": "Whitespace or a tag delimiter changes the structure of an unquoted attribute."
+    },
+    "fix": {
+      "ar": "استخدم خاصية مقتبسة مع ترميز سياقي.",
+      "en": "Always quote attributes and apply context-specific encoding."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "x><img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "x><img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "x><svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "hello",
+        "expected_execution": false,
+        "note": {
+          "ar": "الطلب السليم لا يضيف خاصية أو عقدة جديدة.",
+          "en": "A control does not introduce a new attribute or node."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-script",
+    "group": "xss",
+    "title": {
+      "ar": "سلسلة داخل JavaScript",
+      "en": "JavaScript string"
+    },
+    "cause": {
+      "ar": "المدخل يخرج من سلسلة نصية داخل سكربت.",
+      "en": "Input terminates a JavaScript string and becomes executable code."
+    },
+    "fix": {
+      "ar": "تجنب توليد سكربت من المدخل؛ انقل البيانات بترميز JSON مع ترميز <.",
+      "en": "Avoid generated scripts; serialize data as JSON and escape < for HTML script embedding."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "';alert('BB');//"
+    },
+    "level": "advanced",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "';alert('BB');//",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "';alert(String.fromCharCode(66,66));//",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "%27;alert(1);//",
+        "expected_execution": false,
+        "note": {
+          "ar": "المحرك لا يفك URL قبل إدراج سلسلة JavaScript.",
+          "en": "This sink does not URL-decode before emitting the JavaScript string."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-template",
+    "group": "xss",
+    "title": {
+      "ar": "سلسلة قالب JavaScript",
+      "en": "JavaScript template literal"
+    },
+    "cause": {
+      "ar": "رمز ${...} يصبح تعبيراً عند توليد قالب JavaScript من مدخل.",
+      "en": "A ${...} sequence becomes an expression when a template literal is generated from input."
+    },
+    "fix": {
+      "ar": "عامل المدخل كبيانات ولا تدمجه في قالب تنفيذي.",
+      "en": "Keep input as data instead of interpolating it into executable templates."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "${alert(\"BB\")}"
+    },
+    "level": "advanced",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "${alert(\"BB\")}",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "`;alert('BB');//",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "%24%7Balert(1)%7D",
+        "expected_execution": false,
+        "note": {
+          "ar": "النص المئوي يبقى بيانات في هذا السياق.",
+          "en": "Percent-encoded text remains data in this context."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-url",
+    "group": "xss",
+    "title": {
+      "ar": "رابط قابل للتنفيذ",
+      "en": "URL scheme context"
+    },
+    "cause": {
+      "ar": "ترميز HTML لا يمنع مخطط javascript في href. داخل هذا الإطار نفحص href وسياسة المخطط فقط ولا ندعي تنفيذ javascript:.",
+      "en": "HTML escaping alone does not reject a javascript scheme in href. In this frame we inspect href and scheme policy only, without claiming javascript: execution."
+    },
+    "fix": {
+      "ar": "حلل الرابط واقبل مسارات محلية أو مخططات محددة فقط.",
+      "en": "Parse URLs and allow only local paths or explicitly approved schemes."
+    },
+    "normal": {
+      "value": "/welcome"
+    },
+    "attack": {
+      "value": "javascript:alert(\"BB\")"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "javascript:alert(\"BB\")",
+        "expected_execution": false,
+        "note": {
+          "ar": "تفحّص href في الدليل؛ هذا اختبار قرار مخطط لا إثبات تنفيذ داخل الإطار.",
+          "en": "Inspect href in the evidence; this is a scheme-policy check, not execution proof inside the frame."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "JaVaScRiPt:alert('BB')",
+        "expected_execution": false,
+        "note": {
+          "ar": "تفحّص href في الدليل؛ هذا اختبار قرار مخطط لا إثبات تنفيذ داخل الإطار.",
+          "en": "Inspect href in the evidence; this is a scheme-policy check, not execution proof inside the frame."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "/welcome",
+        "expected_execution": false,
+        "note": {
+          "ar": "تفحّص href في الدليل؛ هذا اختبار قرار مخطط لا إثبات تنفيذ داخل الإطار.",
+          "en": "Inspect href in the evidence; this is a scheme-policy check, not execution proof inside the frame."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-dom-fragment",
+    "group": "xss",
+    "title": {
+      "ar": "DOM من جزء الرابط",
+      "en": "DOM fragment source"
+    },
+    "cause": {
+      "ar": "جزء # لا يرسل للخادم لكنه يصل إلى innerHTML من المتصفح.",
+      "en": "A # fragment never reaches HTTP but can reach innerHTML in the browser."
+    },
+    "fix": {
+      "ar": "استخدم textContent عند معالجة بيانات fragment.",
+      "en": "Use textContent for fragment data."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "<img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "<img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "<svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "<script>alert(\"BB\")</script>",
+        "expected_execution": false,
+        "note": {
+          "ar": "script المضاف عبر innerHTML لا ينفذ تلقائياً؛ هذا لا يجعل innerHTML آمناً.",
+          "en": "A script element inserted by innerHTML does not execute automatically; innerHTML is still unsafe."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-dom-query",
+    "group": "xss",
+    "title": {
+      "ar": "DOM من معامل غير q",
+      "en": "DOM query source: search"
+    },
+    "cause": {
+      "ar": "المدخل search في رابط محلي يصل إلى innerHTML؛ اسم q ليس شرطاً.",
+      "en": "The search parameter reaches innerHTML; the parameter need not be named q."
+    },
+    "fix": {
+      "ar": "راجع تدفق المصدر إلى نقطة الإدراج واستعمل textContent.",
+      "en": "Trace the source to its sink and use textContent."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "<img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "<img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "<svg onload=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "<script>alert(\"BB\")</script>",
+        "expected_execution": false,
+        "note": {
+          "ar": "الوسم script وحده ليس إثباتاً للتنفيذ في innerHTML.",
+          "en": "A script element alone is not execution proof for innerHTML."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-stored",
+    "group": "xss",
+    "title": {
+      "ar": "XSS مخزّن في تعليق",
+      "en": "Stored comment XSS"
+    },
+    "cause": {
+      "ar": "التعليق يخزن كنص لكنه يعرض لاحقاً كـHTML.",
+      "en": "A stored comment is later rendered as HTML."
+    },
+    "fix": {
+      "ar": "رمز عند كل نقطة عرض؛ التخزين وحده لا يطهّر البيانات.",
+      "en": "Encode at every rendering sink; storing a string does not sanitize it."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "<img src=x onerror=alert(\"BB\")>"
+    },
+    "level": "intermediate",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "<img src=x onerror=alert(\"BB\")>",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "<script>alert(\"BB\")</script>",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "&lt;img src=x onerror=alert(1)&gt;",
+        "expected_execution": false,
+        "note": {
+          "ar": "النص المحفوظ ككيانات يعرض كنص دون عملية فك إضافية في هذه الحالة.",
+          "en": "Entity text renders as text without an additional decoding stage in this case."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-entity",
+    "group": "xss",
+    "title": {
+      "ar": "فك كيانات ثم إدراج DOM",
+      "en": "Entity decode before DOM sink"
+    },
+    "cause": {
+      "ar": "فك كيانات HTML ثم innerHTML يعيد تكوين الوسم.",
+      "en": "Decoding HTML entities before innerHTML reconstructs a tag."
+    },
+    "fix": {
+      "ar": "لا تعاود تحليل النص المفكوك كـHTML؛ استخدم textContent.",
+      "en": "Do not parse decoded text as HTML; use textContent."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "&lt;img src=x onerror=alert(\"BB\")&gt;"
+    },
+    "level": "advanced",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "&lt;img src=x onerror=alert(\"BB\")&gt;",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "&#60;img src=x onerror=alert(\"BB\")&#62;",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "&amp;lt;img src=x onerror=alert(1)&amp;gt;",
+        "expected_execution": false,
+        "note": {
+          "ar": "طبقة إضافية من الترميز تبقى نصاً بعد فك واحد ثم تحليل HTML.",
+          "en": "An extra entity layer remains text after one decode followed by HTML parsing."
+        }
+      }
+    ]
+  },
+  {
+    "id": "xss-double-url",
+    "group": "xss",
+    "title": {
+      "ar": "فك URL مرتين",
+      "en": "Double URL decoding"
+    },
+    "cause": {
+      "ar": "فك ترميز مرتين ينتج وسماً لم يكن ظاهراً قبل التحويل.",
+      "en": "Two URL-decoding passes turn encoded data into markup."
+    },
+    "fix": {
+      "ar": "حدد عقد ترميز واحداً ولا تستخدم innerHTML للنص النهائي.",
+      "en": "Define a single decoding contract and keep final text out of innerHTML."
+    },
+    "normal": {
+      "value": "hello"
+    },
+    "attack": {
+      "value": "%253Cimg%2520src%253Dx%2520onerror%253Dalert(%2522BB%2522)%253E"
+    },
+    "level": "advanced",
+    "payloads": [
+      {
+        "label": {
+          "ar": "الحمولة الأساسية",
+          "en": "Primary payload"
+        },
+        "value": "%253Cimg%2520src%253Dx%2520onerror%253Dalert(%2522BB%2522)%253E",
+        "expected_execution": true,
+        "note": {
+          "ar": "راقب التنفيذ في الضعيفة وقارن النص في المُصلحة.",
+          "en": "Observe vulnerable execution and compare the fixed rendering."
+        }
+      },
+      {
+        "label": {
+          "ar": "صيغة ثانية لنفس السياق",
+          "en": "Second context-specific form"
+        },
+        "value": "%3Cimg%20src%3Dx%20onerror%3Dalert%28%22BB%22%29%3E",
+        "expected_execution": true,
+        "note": {
+          "ar": "اختلاف الصيغة لا يلغي الحاجة إلى مطابقة السياق.",
+          "en": "A different spelling still needs a matching sink context."
+        }
+      },
+      {
+        "label": {
+          "ar": "مقارنة سلبية أو ترميز لا يفك هنا",
+          "en": "Negative control / inert encoding"
+        },
+        "value": "%25253Cimg%252520src%25253Dx%252520onerror%25253Dalert%252528%252522BB%252522%252529%25253E",
+        "expected_execution": false,
+        "note": {
+          "ar": "حمولة مرمزة ثلاث مرات تبقى مرمزة بعد فك مرتين.",
+          "en": "A triple-encoded input remains encoded after two decoding passes."
+        }
+      }
+    ]
+  },
+  {
+    "id": "code-sqli",
+    "group": "code",
+    "title": {
+      "ar": "حقن SQL في استعلام بحث",
+      "en": "SQL search injection"
+    },
+    "cause": {
+      "ar": "وصل النص مباشرة باستعلام SQL يغير شرط الملكية.",
+      "en": "Concatenating text into SQL changes the owner predicate."
+    },
+    "fix": {
+      "ar": "استخدم معاملات مربوطة مع شرط ملكية من الجلسة.",
+      "en": "Use bound parameters with a session-derived ownership predicate."
+    },
+    "normal": {
+      "query": "Alice"
+    },
+    "attack": {
+      "query": "' OR 1=1 --"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "code-nosql",
+    "group": "code",
+    "title": {
+      "ar": "عامل مقارنة بدل كلمة مرور",
+      "en": "NoSQL operator confusion"
+    },
+    "cause": {
+      "ar": "واجهة تقبل كائناً مكان سلسلة ثم تفسره كعامل $ne.",
+      "en": "An object is accepted where a string is required and interpreted as $ne."
+    },
+    "fix": {
+      "ar": "تحقق من نوع الحقل ولا تنقل عوامل العميل إلى الاستعلام.",
+      "en": "Validate field types and never pass client operators to a query."
+    },
+    "normal": {
+      "password": "DEMO_VALID_PASSWORD"
+    },
+    "attack": {
+      "password": {
+        "$ne": null
+      }
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "code-template",
+    "group": "code",
+    "title": {
+      "ar": "تقييم قالب من مدخل",
+      "en": "Template expression evaluation"
+    },
+    "cause": {
+      "ar": "محاكاة آمنة للتعبير {{7*7}} تشرح خلط البيانات بالقالب؛ لا يوجد eval.",
+      "en": "A closed {{7*7}} fixture illustrates mixing data with templates; there is no eval."
+    },
+    "fix": {
+      "ar": "استخدم قالباً ثابتاً ومدخلات كبيانات فقط.",
+      "en": "Use a fixed template and pass input only as data."
+    },
+    "normal": {
+      "template": "hello"
+    },
+    "attack": {
+      "template": "{{7*7}}"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "code-redirect",
+    "group": "code",
+    "title": {
+      "ar": "تحويل خارجي غير مقيد",
+      "en": "Unrestricted redirect decision"
+    },
+    "cause": {
+      "ar": "الحقل next يقبل وجهة خارجية دون سياسة. لا يحدث انتقال خارجي.",
+      "en": "The next field accepts an external destination without policy. No external navigation occurs."
+    },
+    "fix": {
+      "ar": "اقبل مسارات محلية محددة بعد التحليل والتطبيع.",
+      "en": "Allow specific parsed and normalized local paths."
+    },
+    "normal": {
+      "next": "/welcome"
+    },
+    "attack": {
+      "next": "https://outside.example/"
+    },
+    "level": "intermediate"
+  },
+  {
+    "id": "code-ssrf",
+    "group": "code",
+    "title": {
+      "ar": "نقل إلى خدمة داخلية وهمية",
+      "en": "Synthetic internal fetch"
+    },
+    "cause": {
+      "ar": "قائمة نقل مغلقة تسمح بقراءة عينة داخلية؛ لا يوجد اتصال شبكة.",
+      "en": "A closed transport fixture exposes an internal response without networking."
+    },
+    "fix": {
+      "ar": "طبق سياسة وجهات وحقق منها عند كل تحويل قبل النقل الفعلي.",
+      "en": "Enforce destination policy and revalidate every redirect before transport."
+    },
+    "normal": {
+      "url": "https://public.lab/welcome"
+    },
+    "attack": {
+      "url": "http://internal.lab/config"
+    },
+    "level": "intermediate"
+  }
+]

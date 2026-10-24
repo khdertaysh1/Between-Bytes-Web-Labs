@@ -1,3 +1,12 @@
+# v0.8 · Advanced scenario academy
+
+- Add 50 bilingual, open scenarios across payment logic (16), authorization (10), rate limits (7), XSS contexts (12) and other code flaws (5), alongside the 13 foundation rooms.
+- Add `/academy` tracks, search, difficulty ordering, editable JSON requests, synthetic application results, progressive hints, notes, evidence exports and local completion marks.
+- Bind non-browser evidence to matching request fingerprints and a working fixed control; keep browser-assisted XSS observations distinct from server flags.
+- Add real in-memory SQLite parsing and sandboxed browser rendering across 12 XSS contexts (11 execution checks plus href-policy inspection), with 36 payload/control samples, including actual fragment/search sources and separately retrieved stored comments.
+- Keep payments/providers, source rotation, stale-read scheduling and non-SQL services as clearly labeled bounded fixtures without external targets.
+- Add full Arabic/English case guides and Termux update instructions.
+
 # Changelog
 
 ## 0.7.0 — 2026-10-24

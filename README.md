@@ -1,8 +1,10 @@
 # Between Bytes Web Labs
 
-مختبرات عربية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
+مختبرات بالعربية والإنكليزية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
 
-**الإصدار 0.7:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع غرف تفاعلية بالعربية والإنكليزية تناسب الهاتف.
+**الإصدار 0.8:** [أكاديمية من 50 سيناريو متقدم](docs/academy.ar.md) و[دليل إنكليزي كامل](docs/academy.en.md)، بالإضافة إلى الغرف الأساسية التالية. افتح `/academy` للواجهة الجديدة بعد التشغيل.
+
+**الغرف الأساسية:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع غرف تفاعلية بالعربية والإنكليزية تناسب الهاتف.
 
 | المختبر | الخطأ المتعمّد | ما يوضحه الإصلاح |
 |---|---|---|
@@ -85,3 +87,31 @@ Thirteen local, intentionally vulnerable web lessons with paired fixes: CSRF, CO
 Created for the Between Bytes community by [khdertaysh1](https://github.com/khdertaysh1).
 
 See [new lesson scope and browser-origin details](docs/advanced.en.md).
+
+## أكاديمية السيناريوهات · 50 حالة متقدمة
+
+افتح **http://127.0.0.1:8000/academy** أو زر الأكاديمية في الصفحة الرئيسية. عند استخدام `--port 8002` يصبح الرابط **http://127.0.0.1:8002/academy**.
+
+| المسار | الحالات | أمثلة |
+|---|---:|---|
+| منطق الدفع | 16 | السعر والكمية والخصم والعملة والإجمالي، تسوية الطلب، إشعارات المزود، إعادة الأحداث والاسترداد والتجارب |
+| الصلاحيات وIDOR | 10 | قراءة وتعديل وحذف، موارد فرعية، مؤسسة، مجموعات، تصدير وتنزيل وأدوار وإسناد جماعي |
+| حدود المحاولات | 7 | مصدر وهمي، توزيع مصادر، IPv6، تطبيع الحساب، مسارات وتحديات ونافذة زمنية |
+| سياقات XSS | 12 | HTML وخصائص مقتبسة وغير مقتبسة، سلاسل وقوالب JavaScript، URL، DOM، تخزين وفك ترميز |
+| حالات برمجية أخرى | 5 | SQLite SQLi، نماذج NoSQL وتقييم قالب وتحويل وSSRF |
+
+هذه **50 حالة وليست 50 فئة مستقلة**؛ تضاف إلى 13 غرفة أساسية. تحتوي الأكاديمية على مسارات وبحث وفرز، ومحرر JSON، ومعاينة تطبيق محلي، وتلميحات، ودليل قابل للتنزيل واستنتاجات وعلامات إنجاز. كل الحالات مفتوحة بلا نقاط. صعوبة التعلم ليست تصنيف خطورة.
+
+**Advanced academy:** 50 additional bilingual scenarios at `/academy`, including 16 payment, 10 authorization, 7 rate-limit, 12 XSS-context and 5 other code cases. Payment/provider decisions, IP sources, NoSQL, template, redirect and SSRF behavior are explicitly bounded fixtures. SQLi runs against real in-memory SQLite; XSS has actual sandboxed browser previews (11 execution checks and one href-policy inspection), with 36 context-specific payload/control samples. This is a local learning environment, not a scanner or an exhaustive exploit collection. See [the English guide](docs/academy.en.md) for controls, sample inputs and limitations.
+
+### التحديث على Termux
+
+أوقف الخادم القديم بـ Ctrl+C، ثم:
+
+```bash
+cd ~/Between-Bytes-Web-Labs
+git pull --ff-only origin main
+python app.py --port 8002
+```
+
+افتح **http://127.0.0.1:8002/academy**. تحقق من ظهور **SCENARIO ACADEMY · 0.8** و50 حالة. إذا فشل `git pull` بسبب تعديلات محلية، احتفظ بها ولا تستخدم reset لحذفها.
