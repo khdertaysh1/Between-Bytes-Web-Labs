@@ -7,6 +7,8 @@ PREVIEW_CSP = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-in
                "style-src 'none'; connect-src 'none'; img-src 'none'; form-action 'none'; "
                "base-uri 'none'; frame-src 'none'; frame-ancestors 'self'")
 INVOICES = {
+    "2001": {"id": "2001", "owner": "alice", "amount": "31.00", "note": "Alice assessment invoice"},
+    "2002": {"id": "2002", "owner": "bob", "amount": "86.00", "note": "Bob synthetic assessment invoice"},
     "1001": {"id": "1001", "owner": "alice", "amount": "24.00", "note": "Alice training invoice"},
     "1002": {"id": "1002", "owner": "bob", "amount": "79.00", "note": "Bob synthetic private invoice"},
 }

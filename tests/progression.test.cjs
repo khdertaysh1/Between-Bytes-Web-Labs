@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict');
+const {CourseProgress,groups}=require('../progression.js');
+const p=new CourseProgress();
+assert.equal(p.points,0);assert.equal(p.canAccess('idor'),false);assert.equal(p.canAccess('dom-xss'),false);
+assert.equal(p.complete('idor'),false);assert.equal(p.points,0);
+for(const id of groups[0])assert.equal(p.complete(id),true);
+assert.equal(p.points,300);assert.equal(p.canAccess('idor'),true);assert.equal(p.canAccess('reflected-xss'),false);
+assert.equal(p.complete(groups[0][0]),false);assert.equal(p.points,300);
+p.complete('idor');assert.equal(p.canAccess('dom-xss'),false);p.complete('edge403');assert.equal(p.points,500);assert.equal(p.canAccess('dom-xss'),true);
+for(const id of groups[2])p.complete(id);assert.equal(p.points,700);
+const restored=new CourseProgress(JSON.parse(JSON.stringify(p.awards)));assert.equal(restored.points,700);
+assert.equal(new CourseProgress({fake:999,idor:500,enumeration:100}).points,100);
+p.reset();assert.equal(p.points,0);assert.equal(p.canAccess('idor'),false);
+console.log('PASS: prerequisites, 300/500 unlocks, one-time points, persistence, reset and invalid records');

@@ -113,7 +113,7 @@ def handler_for(labs):
                     return self.reply(200, document.encode(), "text/html; charset=utf-8", PREVIEW_CSP)
                 except ValueError:
                     return self.reply(400, {"error": "Invalid preview"})
-            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
+            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
             if self.path in files:
                 name, mime = files[self.path]
                 return self.reply(200, Path(__file__).with_name(name).read_bytes(), mime)

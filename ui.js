@@ -56,20 +56,37 @@ const lessons = {
 Object.assign(lessons, extraLessons);
 let current = 'enumeration';
 let busy = false;
-let completed;
-try { completed = new Set(JSON.parse(localStorage.getItem('bb-challenges-v3') || '[]').filter(id => lessons[id])); }
-catch (_) { completed = new Set(); }
-function saveProgress() {
-  try { localStorage.setItem('bb-challenges-v3', JSON.stringify([...completed])); } catch (_) {}
-  $('progress').textContent = `${completed.size} / ${Object.keys(lessons).length}`;
-  $('progress-bar').style.width = `${completed.size / Object.keys(lessons).length * 100}%`;
-  for (const element of document.querySelectorAll('[data-completion]')) {
-    element.textContent = completed.has(element.dataset.completion) ? 'حُلّ التحدي ✓' : 'افتح المختبر ←';
-  }
+const orderedLessons=Course.groups.flat().map(id=>[id,lessons[id]]);
+for(const id of Object.keys(lessons))delete lessons[id];
+orderedLessons.forEach(([id,l],index)=>{l.number=String(index+1).padStart(2,'0');lessons[id]=l;});
+let completed, courseProgress;
+try{completed=new Set(JSON.parse(localStorage.getItem('bb-practice-v4')||localStorage.getItem('bb-challenges-v3')||'[]').filter(id=>lessons[id]));}catch(_){completed=new Set();}
+try{courseProgress=new Course.CourseProgress(JSON.parse(localStorage.getItem('bb-exams-v4')||'{}'));}catch(_){courseProgress=new Course.CourseProgress();}
+function saveProgress(){
+ try{localStorage.setItem('bb-practice-v4',JSON.stringify([...completed]));localStorage.setItem('bb-exams-v4',JSON.stringify(courseProgress.awards));}catch(_){}
+ const passed=Object.keys(courseProgress.awards).length;
+ $('progress').textContent=`${passed} / 7`;$('progress-bar').style.width=`${passed/7*100}%`;
+ $('score-total').textContent=`${courseProgress.points} / 700 نقطة`;
+ for(const element of document.querySelectorAll('[data-completion]')){
+  const id=element.dataset.completion;
+  element.textContent=courseProgress.awards[id]?'اجتزت الاختبار · 100 نقطة ✓':!courseProgress.canAccess(id)?'مقفل · أكمل المستوى السابق':completed.has(id)?'التدريب مكتمل · الاختبار متاح':'ابدأ الدرس ←';
+ }
+ for(const element of document.querySelectorAll('[data-nav], .lab-card')){
+  const id=element.dataset.nav||element.hash.slice(1),locked=!courseProgress.canAccess(id);
+  element.classList.toggle('locked',locked);element.setAttribute('aria-disabled',String(locked));
+ }
+ const names=['أساسيات الحسابات والحدود','صلاحيات الموارد والطبقات','حقن JavaScript وسياقات العرض'];
+ $('roadmap').replaceChildren(...Course.groups.map((ids,i)=>{
+  const div=document.createElement('div');div.className='roadmap-level';
+  const title=document.createElement('h3');title.textContent=`المستوى ${i+1} · ${names[i]}`;
+  const p=document.createElement('p');const done=ids.every(id=>courseProgress.awards[id]);
+  p.textContent=done?'مكتمل ✓':courseProgress.canAccess(ids[0])?'متاح الآن':`يفتح بعد اجتياز جميع اختبارات المستوى السابق (${i===1?'300':'500'} نقطة إجمالاً)`;
+  div.classList.toggle('available',courseProgress.canAccess(ids[0]));div.append(title,p);return div;
+ }));
 }
 // All inserted markup below is authored lesson content; HTTP/user data uses textContent.
 $('navigation').innerHTML = Object.entries(lessons).map(([id,l]) => `<a href="#${id}" class="nav-item" data-nav="${id}"><b class="nav-number">${l.number}</b>${l.title}<span>←</span></a>`).join('');
-$('cards').innerHTML = Object.entries(lessons).map(([id,l]) => `<a class="lab-card" href="#${id}"><div class="card-top"><span class="number">${l.number}</span><span class="level">مبتدئ · ${l.time}</span></div><h3>${l.title}</h3><span class="english" dir="ltr">${l.english}</span><p>${l.short}</p><div class="card-bottom"><span data-completion="${id}">افتح المختبر ←</span><span>ضعيف / مُصلح</span></div></a>`).join('');
+$('cards').innerHTML = Object.entries(lessons).map(([id,l]) => `<a class="lab-card" href="#${id}"><div class="card-top"><span class="number">${l.number}</span><span class="level">مستوى ${courseProgress.level(id)} · ${l.time}</span></div><h3>${l.title}</h3><span class="english" dir="ltr">${l.english}</span><p>${l.short}</p><div class="card-bottom"><span data-completion="${id}">افتح المختبر ←</span><span>ضعيف / مُصلح</span></div></a>`).join('');
 function tab(name) {
   for (const id of ['learn','experiment','fix']) $(id).hidden = id !== name;
   for (const button of document.querySelectorAll('[data-tab]')) {
@@ -79,7 +96,11 @@ function tab(name) {
   }
 }
 function route() {
-  const id = location.hash.slice(1);
+  let id = location.hash.slice(1);
+  if(lessons[id]&&!courseProgress.canAccess(id)){
+    $('course-notice').textContent='هذا المستوى مقفل. اجتز الاختبارات العملية في المستوى السابق أولاً؛ قراءة الدرس أو مشاهدة المقارنة لا تمنح نقاطاً.';
+    history.replaceState(null,'','#home');id='home';
+  }else{$('course-notice').textContent='';}
   if (busy) { history.replaceState(null, '', '#' + current); return; }
   const home = !lessons[id];
   $('home').hidden = !home;
@@ -88,6 +109,7 @@ function route() {
   for (const element of document.querySelectorAll('[data-nav]')) element.classList.toggle('active', !home && element.dataset.nav === id);
   if (home) { document.title = 'Between Bytes — مختبرات أمن الويب'; return; }
   current = id;
+  renderCourse(id);
   const l = lessons[id];
   document.title = `${l.title} — Between Bytes`;
   for (const [key,value] of Object.entries({'lesson-meta':`مختبر ${l.number} / ${l.english} / ${l.time}`,'lesson-title':l.title,'lesson-subtitle':l.subtitle,'scenario-title':l.scenario,'scenario-body':l.body,'experiment-copy':l.copy,'root-title':l.root,'root-body':l.cause,'bad-code':l.bad,'good-code':l.good,limits:l.limits,question:l.question,answer:l.answer})) $(key).textContent = value;
@@ -176,7 +198,7 @@ $('manual').onsubmit = async event => {
 };
 $('reset').onclick=async()=>{if(busy)return;lock(true);try{await reset();$('outbox').textContent='[]';$('manual-response').textContent='تم تصفير العدّادات والبريد.';}catch(error){$('manual-response').textContent=error.message;}finally{lock(false);}};
 $('refresh').onclick=async()=>{try{$('outbox').textContent=JSON.stringify(await inbox(),null,2);}catch(error){$('outbox').textContent=error.message;}};
-$('clear-progress').onclick=()=>{completed.clear();saveProgress();};
+$('clear-progress').onclick=()=>{if(!confirm('مسح نقاط الاختبارات والتدريب وإعادة قفل المستويات؟'))return;completed.clear();courseProgress.reset();saveProgress();route();};
 for(const button of document.querySelectorAll('[data-tab]')){
   button.onclick=()=>tab(button.dataset.tab);
   button.onkeydown=event=>{if(!['ArrowRight','ArrowLeft'].includes(event.key))return;event.preventDefault();const buttons=[...document.querySelectorAll('[data-tab]')];const next=buttons[(buttons.indexOf(button)+(event.key==='ArrowLeft'?1:2))%3];tab(next.dataset.tab);next.focus();};

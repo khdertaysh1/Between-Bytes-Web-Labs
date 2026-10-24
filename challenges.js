@@ -9,10 +9,19 @@ const instructions = {
  'dom-xss':{goal:'تتبّع إدخال النص عبر postMessage إلى innerHTML، ثم جرّب نفس المدخل مع textContent.',checks:['رُصد تنفيذ BB-LAB في نقطة إدراج DOM الضعيفة','نفس المدخل صار نصاً في المُصلحة دون إشارة تنفيذ خلال المعاينة'],hints:['المدخل يصل إلى المتصفح كرسالة ولا يذهب للخادم.','innerHTML لا يشغّل وسم script المضاف بهذه الطريقة عادة؛ جرّب حدث عنصر.','مثال داخل الإطار: <img src=x onerror="alert(\'BB-LAB\')">']},
  edge403:{goal:'قارن مساري edge وorigin الوهميين للزائر المجهول، ثم أثبت أن المُصلحة تمنع الاثنين.',checks:['edge الضعيف يعيد 403','origin الضعيف يعيد بيانات إدارية 200','edge المُصلح يعيد 403','origin المُصلح يعيد 403'],hints:['المدخل layer يختار مساراً وهمياً داخل التطبيق نفسه.','جرّب edge ثم origin في الضعيفة.','كرّر الاختبارين في المُصلحة. هذا خطأ صلاحيات الأصل، وليس تجاوز Cloudflare فعلياً.']}
 };
-function setupChallenge(id) {
+function setupChallenge(id, exam=false) {
   if(mission?.pending) mission.pending.cancel();
-  mission={id,active:false,rows:[],hints:0,pending:null};
-  const spec=instructions[id];
+  mission={id,exam,active:false,rows:[],hints:0,pending:null};
+  const spec=JSON.parse(JSON.stringify(instructions[id]));
+  mission.existing=exam?'bob@example.test':'alice@example.test';mission.missing=exam?'visitor@example.test':'nobody@example.test';
+  mission.own=exam?'2001':'1001';mission.other=exam?'2002':'1002';mission.marker=exam?'BB-EXAM':'BB-LAB';
+  if(exam){spec.goal=courseContent[id].exam;spec.checks=spec.checks.map(t=>t.replaceAll('BB-LAB','BB-EXAM'));}
+  mission.spec=spec;
+  $('mission-start').textContent=exam?'إعادة بدء الاختبار':'ابدأ / صفّر التدريب';
+  $('mission-kind').textContent=exam?'اختبار عملي · 100 نقطة عند الاجتياز لأول مرة':'تدريب مع تلميحات · دون نقاط';
+  $('mission-title').textContent=exam?'طبّق ما فهمته دون تلميحات':'اكتشف الفرق بنفسك';
+  document.querySelector('.hints').hidden=exam;
+  $('guided-demo').hidden=exam||!!extraLessons[id];
   $('mission-goal').textContent=spec.goal;
   $('mission-checks').replaceChildren(...spec.checks.map(text=>{const li=document.createElement('li');li.textContent='○ '+text;return li;}));
   $('mission-status').textContent='اضغط «ابدأ» ثم عدّل المدخلات بنفسك.';
@@ -26,15 +35,17 @@ function setupChallenge(id) {
   else if(id.endsWith('xss')) fields+='<label class="wide">مدخل البحث · اكتب بنفسك<textarea id="task-payload" maxlength="1000" dir="ltr">hello</textarea></label>';
   else fields+='<label>البريد<input id="task-email" type="email" value="alice@example.test" required></label>'+(id==='rate-limit'?'<label>ترويسة X-Forwarded-For<input id="task-forwarded" placeholder="فارغ أولاً، ثم غيّر القيمة" maxlength="100"></label>':'');
   $('mission-inputs').innerHTML=fields;
+  if(exam&&$('task-email'))$('task-email').value=mission.existing;
+  if(exam&&$('task-resource'))$('task-resource').value=mission.own;
 }
 function gradeMission() {
   const rows=mission.rows;
   const has=(mode,predicate)=>rows.some(r=>r.mode===mode&&predicate(r));
   const id=mission.id;
   let checks=[];
-  if(id==='idor') checks=[has('vulnerable',r=>r.input==='1001'&&r.status===200&&r.body.invoice?.owner==='alice'),has('vulnerable',r=>r.input==='1002'&&r.status===200&&r.body.invoice?.owner==='bob'),has('fixed',r=>r.input==='1002'&&r.status===403),has('fixed',r=>r.input==='1001'&&r.status===200)];
+  if(id==='idor') checks=[has('vulnerable',r=>r.input===mission.own&&r.status===200&&r.body.invoice?.owner==='alice'),has('vulnerable',r=>r.input===mission.other&&r.status===200&&r.body.invoice?.owner==='bob'),has('fixed',r=>r.input===mission.other&&r.status===403),has('fixed',r=>r.input===mission.own&&r.status===200)];
   else if(id==='edge403') checks=['vulnerable','fixed'].flatMap(mode=>['edge','origin'].map(layer=>has(mode,r=>r.input===layer&&r.status===(mode==='vulnerable'&&layer==='origin'?200:403))));
-  else if(id==='enumeration') checks=[has('vulnerable',r=>r.input==='alice@example.test'&&r.status===200),has('vulnerable',r=>r.input==='nobody@example.test'&&r.status===404),['alice@example.test','nobody@example.test'].every(email=>has('fixed',r=>r.input===email&&r.status===202))&&new Set(rows.filter(r=>r.mode==='fixed').map(r=>JSON.stringify(r.body))).size===1];
+  else if(id==='enumeration') checks=[has('vulnerable',r=>r.input===mission.existing&&r.status===200),has('vulnerable',r=>r.input===mission.missing&&r.status===404),[mission.existing,mission.missing].every(email=>has('fixed',r=>r.input===email&&r.status===202))&&new Set(rows.filter(r=>r.mode==='fixed').map(r=>JSON.stringify(r.body))).size===1];
   else if(id==='rate-limit') {
     const first=rows.findIndex(r=>r.mode==='vulnerable'&&r.status===429&&!r.forwarded);
     const fixedFirst=rows.findIndex(r=>r.mode==='fixed'&&r.status===429&&!r.forwarded);
@@ -44,9 +55,14 @@ function gradeMission() {
     const executed=rows.find(r=>r.mode==='vulnerable'&&r.executed);
     checks=[!!executed,!!executed&&has('fixed',r=>r.input===executed.input&&!r.executed&&r.rendered?.text===r.input&&r.rendered?.images===0)];
   }
-  [...$('mission-checks').children].forEach((li,i)=>{li.classList.toggle('done',!!checks[i]);li.textContent=(checks[i]?'✓ ':'○ ')+instructions[id].checks[i];});
+  [...$('mission-checks').children].forEach((li,i)=>{li.classList.toggle('done',!!checks[i]);li.textContent=(checks[i]?'✓ ':'○ ')+mission.spec.checks[i];});
   if(checks.every(Boolean)) {
-    completed.add(id);saveProgress();$('mission-status').textContent='حُلّ التحدي: جمعت دليل السلوك الضعيف وتحققت من الإصلاح في هذا السيناريو. انتقل لشرح الإصلاح.';
+    if(mission.exam){
+      const fresh=courseProgress.complete(id);saveProgress();
+      $('mission-status').textContent=fresh?'اجتزت الاختبار العملي! أُضيفت 100 نقطة. راجع مسارك لمعرفة المستوى المتاح.':'اجتزت الاختبار مجدداً. نقاط هذا الدرس مُنحت سابقاً؛ لا تُضاف نقاط مكررة.';
+    }else{
+      completed.add(id);saveProgress();$('mission-status').textContent='حُلّ التحدي التدريبي. راجع شرح الإصلاح ثم ابدأ الاختبار العملي لتحصيل النقاط.';
+    }
   }
 }
 function addEvidence(row) {
@@ -55,13 +71,16 @@ function addEvidence(row) {
   $('mission-evidence').textContent=JSON.stringify(mission.rows,null,2);
   gradeMission();
 }
-$('mission-start').onclick=async()=>{
-  if(busy)return;
+async function startMission(exam=false){
+  if(busy||!courseProgress.canAccess(current))return;
   lock(true);$('mission-send').disabled=true;
-  try{await reset();setupChallenge(current);mission.active=true;$('mission-status').textContent='التحدي جاهز. عدّل المدخلات، أرسل طلباً، واقرأ الدليل.';}
-  catch(error){$('mission-status').textContent='تعذر بدء التحدي: '+error.message;}
+  try{await reset();setupChallenge(current,exam);mission.active=true;$('mission-status').textContent=exam?'بدأ الاختبار: اقرأ المهمة واجمع الأدلة دون تلميحات.':'التدريب جاهز. عدّل المدخلات واقرأ النتائج.';tab('experiment');}
+  catch(error){$('mission-status').textContent='تعذر بدء الجولة: '+error.message;}
   finally{lock(false);$('mission-send').disabled=!mission.active;}
-};
+}
+$('mission-start').onclick=()=>startMission(mission?.exam||false);
+$('practice-return').onclick=()=>startMission(false);
+$('exam-start').onclick=()=>startMission(true);
 async function accessRequest(kind, mode, field, value) {
   const path=`/lab/${kind}/${mode}`;
   const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({[field]:value}),signal:AbortSignal.timeout(8000)});
@@ -85,7 +104,7 @@ function previewXss(kind,mode,input) {
       if(event.source!==frame.contentWindow||event.data?.token!==token)return;
       const data=event.data;
       if(data.type==='bb-ready'&&kind==='dom-xss')frame.contentWindow.postMessage({token,value:input},'*');
-      if(data.type==='bb-executed'&&data.value==='BB-LAB')executed=true;
+      if(data.type==='bb-executed'&&data.value===mission.marker)executed=true;
       if(data.type==='bb-rendered'&&typeof data.text==='string'&&typeof data.images==='number'){
         rendered={text:data.text.slice(0,2000),images:data.images};
         clearTimeout(settle);settle=setTimeout(()=>finish(),650);
@@ -111,7 +130,7 @@ $('mission-form').onsubmit=async event=>{
       $('mission-status').textContent=`HTTP ${row.status} · اقرأ الجسم في دفتر الدليل. actor هوية يحددها الخادم، وليست حقلاً ترسله.`;
     }else if(id.endsWith('xss')){
       row=await previewXss(id,mode,$('task-payload').value);
-      $('mission-status').textContent=row.executed?'رُصد تنفيذ alert("BB-LAB") داخل إطار التدريب.':'لم تُرصد إشارة BB-LAB خلال المعاينة. هذه النتيجة وحدها لا تثبت سلامة أي مدخل آخر.';
+      $('mission-status').textContent=row.executed?'رُصدت إشارة التنفيذ المطلوبة داخل الإطار.':'لم تُرصد إشارة التنفيذ المطلوبة خلال المعاينة. هذه النتيجة وحدها لا تثبت سلامة أي مدخل آخر.';
     }else{
       const input=$('task-email').value.trim().toLowerCase();const forwarded=id==='rate-limit'?$('task-forwarded').value:'';
       row={mode,input,forwarded,...await post(`/lab/${id}/${mode}`,input,forwarded)};
@@ -122,9 +141,9 @@ $('mission-form').onsubmit=async event=>{
   }catch(error){$('mission-status').textContent='تعذر إكمال الطلب: '+error.message;}
   finally{lock(false);$('mission-start').disabled=false;$('mission-send').disabled=!mission.active;}
 };
-$('mission-hint').onclick=()=>{const hints=instructions[current].hints;mission.hints=Math.min(mission.hints+1,hints.length);$('hint-text').textContent=hints.slice(0,mission.hints).map((text,i)=>`${i+1}. ${text}`).join('\n');};
+$('mission-hint').onclick=()=>{if(mission.exam)return;const hints=instructions[current].hints;mission.hints=Math.min(mission.hints+1,hints.length);$('hint-text').textContent=hints.slice(0,mission.hints).map((text,i)=>`${i+1}. ${text}`).join('\n');};
 $('export-evidence').onclick=()=>{
-  const blob=new Blob([JSON.stringify({lesson:current,local_training:true,evidence:mission.rows},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({lesson:current,kind:mission.exam?"assessment":"practice",points:courseProgress.awards[current]||0,local_training:true,evidence:mission.rows},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`between-bytes-${current}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 setupChallenge(current);

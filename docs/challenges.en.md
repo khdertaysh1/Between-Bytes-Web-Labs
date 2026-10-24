@@ -1,4 +1,6 @@
-# Hands-on challenges (0.3)
+# Hands-on practice
+
+Version 0.4 separates this practice from point-bearing practical assessments; see [course progression](course.en.md).
 
 Seven local lessons now have a manual workbench. Open a lesson, choose the second tab, start/reset the challenge, edit its inputs, and send individual requests. The checklist advances from observed evidence rather than watching the automatic demonstration. Hints reveal progressively. Evidence can be downloaded as JSON. A round is bounded to 60 submissions; starting a round resets server counters/mail across all lessons. Progress is client-side educational state, not a tamper-resistant score or certification.
 
