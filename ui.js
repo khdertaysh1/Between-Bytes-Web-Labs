@@ -65,8 +65,8 @@ try{courseProgress=new Course.CourseProgress(JSON.parse(localStorage.getItem('bb
 function saveProgress(){
  try{localStorage.setItem('bb-practice-v4',JSON.stringify([...completed]));localStorage.setItem('bb-exams-v4',JSON.stringify(courseProgress.awards));}catch(_){}
  const passed=Object.keys(courseProgress.awards).length;
- $('progress').textContent=`${passed} / 7`;$('progress-bar').style.width=`${passed/7*100}%`;
- $('score-total').textContent=`${courseProgress.points} / 700 نقطة`;
+ $('progress').textContent=`${passed} / ${Object.keys(lessons).length}`;$('progress-bar').style.width=`${passed/Object.keys(lessons).length*100}%`;
+ $('score-total').textContent=`${courseProgress.points} / ${Object.keys(lessons).length*100} نقطة`;
  for(const element of document.querySelectorAll('[data-completion]')){
   const id=element.dataset.completion;
   element.textContent=courseProgress.awards[id]?'اجتزت الاختبار · 100 نقطة ✓':!courseProgress.canAccess(id)?'مقفل · أكمل المستوى السابق':completed.has(id)?'التدريب مكتمل · الاختبار متاح':'ابدأ الدرس ←';
@@ -75,12 +75,12 @@ function saveProgress(){
   const id=element.dataset.nav||element.hash.slice(1),locked=!courseProgress.canAccess(id);
   element.classList.toggle('locked',locked);element.setAttribute('aria-disabled',String(locked));
  }
- const names=['أساسيات الحسابات والحدود','صلاحيات الموارد والطبقات','حقن JavaScript وسياقات العرض'];
+ const names=['أساسيات الحسابات والحدود','صلاحيات الموارد والطبقات','حقن JavaScript وسياقات العرض','الطلبات والأصول في المتصفح','الوجهات وطلبات الخادم','المعلومات والأسرار المنشورة'];
  $('roadmap').replaceChildren(...Course.groups.map((ids,i)=>{
   const div=document.createElement('div');div.className='roadmap-level';
   const title=document.createElement('h3');title.textContent=`المستوى ${i+1} · ${names[i]}`;
   const p=document.createElement('p');const done=ids.every(id=>courseProgress.awards[id]);
-  p.textContent=done?'مكتمل ✓':courseProgress.canAccess(ids[0])?'متاح الآن':`يفتح بعد اجتياز جميع اختبارات المستوى السابق (${i===1?'300':'500'} نقطة إجمالاً)`;
+  p.textContent=done?'مكتمل ✓':courseProgress.canAccess(ids[0])?'متاح الآن':`يفتح بعد اجتياز جميع اختبارات المستوى السابق (${Course.groups.slice(0,i).flat().length*100} نقطة إجمالاً)`;
   div.classList.toggle('available',courseProgress.canAccess(ids[0]));div.append(title,p);return div;
  }));
 }

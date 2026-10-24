@@ -2,7 +2,7 @@
 
 مختبرات عربية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
 
-**الإصدار 0.4:** سبعة مختبرات مستقلة، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
+**الإصدار 0.5:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
 
 | المختبر | الخطأ المتعمّد | ما يوضحه الإصلاح |
 |---|---|---|
@@ -13,6 +13,12 @@
 | Reflected XSS | انعكاس مدخل البحث كـHTML | ترميز سياق نص HTML |
 | DOM XSS | رسالة غير موثوقة إلى innerHTML | العرض باستخدام textContent |
 | Edge / Origin 403 | منع عند الوكيل دون تحقق الأصل | رفض الزائر المجهول عند الطبقتين — محاكاة محلية |
+| CSRF | كتابة عبر أصل آخر اعتماداً على الجلسة | تحقق Origin وتوكن CSRF في جلسة وهمية |
+| CORS | إتاحة بيانات الجلسة لأصل غير موثوق | اختبار قراءة فعلية بين منفذين محليين |
+| Open Redirect | قبول وجهة غير موثوقة | قائمة مسارات مسموحة — معاينة قرار فقط |
+| SSRF | قبول وجهة داخلية وتحويل إليها | نقل وهمي بلا شبكة مع سياسة وجهات |
+| API Keys | سر خادم داخل عينة الواجهة | إزالة السر الوهمي مع بقاء المفتاح العام |
+| Exposed Files | نشر إعداد ونسخة احتياطية | حجب ملفات وهمية مع بقاء الموارد العامة |
 
 ## التشغيل على Termux
 
@@ -38,13 +44,13 @@ python app.py
 4. اضغط **ابدأ الاختبار العملي**: جولة جديدة دون تلميحات، وببيانات اختبار مذكورة في المهمة.
 5. عند اجتياز شروط الدليل تحصل على **100 نقطة مرة واحدة**؛ التدريب والمقارنة الآلية لا يمنحان نقاطاً.
 
-**ثلاثة مستويات:** الأساسيات → الصلاحيات → XSS. يفتح المستوى الثاني بعد اختبارات الأول الثلاثة (300 نقطة)، والثالث بعد اختبارات المستويين السابقين (500 نقطة). المجموع الأقصى 700، وإعادة اختبار مجتاز لا تضاعف نقاطه.
+**ستة مستويات:** الأساسيات → الصلاحيات → XSS → CSRF/CORS → الوجهات وطلبات الخادم → المعلومات والأسرار المنشورة. يفتح كل مستوى بعد اجتياز جميع اختبارات ما قبله. الحدود: 300، 500، 700، 900، 1100 نقطة؛ والمجموع الأقصى 1300 دون مضاعفة النقاط بالإعادة.
 
-[دليل المستويات والاختبارات](docs/course.ar.md) · [English course guide](docs/course.en.md) · [دليل التمارين](docs/challenges.ar.md)
+[تفاصيل الدروس الستة الجديدة وحدودها](docs/advanced.ar.md) · [دليل المستويات والاختبارات](docs/course.ar.md) · [English course guide](docs/course.en.md) · [دليل التمارين](docs/challenges.ar.md)
 
 التقدّم محفوظ محلياً على نفس المتصفح، وليس نظام امتحانات محصناً ضد تعديل المستخدم أو نظام شهادات. نتائج التدريب القديمة لا تتحول تلقائياً إلى نقاط. بدء جولة يمسح عدّادات الخادم والبريد الوهمي؛ الجولة تسمح حتى 60 تجربة.
 
-الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح كل البيانات.
+الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح بيانات الخادم المؤقتة؛ نقاط الاختبارات تبقى محفوظة في المتصفح.
 
 ## الاختبارات
 
@@ -53,6 +59,10 @@ python -m unittest discover -s tests -v
 ```
 
 تختبر سلوك النسختين وملكية الفواتير ومسارات 403 وعزل المعاينات وترميز الانعكاس، بالإضافة إلى انقضاء المهلة بساعة وهمية، حدود الحساب والمصدر، وصندوق البريد ومسارات HTTP محلياً. لا تحتاج اتصالاً بالإنترنت.
+
+## حدود التجارب الجديدة
+
+CSRF وCORS تجارب متصفح فعلية بأصلين محليين مختلفي المنفذ ضمن نفس الموقع، مع جلسة وحالة وهميتين. SSRF نقل وهمي لا يتصل بالشبكة. Open Redirect معاينة قرار لا انتقال خارجي. ملفات ENV والمفاتيح عينات غير صالحة في الذاكرة، ولا يقرأ التطبيق ملفات جهازك. المنفذ المحلي الثاني يعمل ويغلق تلقائياً.
 
 ## مختبرات XSS و403
 
@@ -68,8 +78,10 @@ XSS يعمل داخل إطار sandbox منفصل عن أصل المنصة، م�
 
 ## English
 
-Version 0.4 adds expanded in-page lessons, three gated levels and separate practical assessments. Pass each once for 100 points; practice awards none. Levels unlock at 300 and 500 points with all prerequisite exams passed, maximum 700. Scores are local educational state, not secure exam records. See the [course guide](docs/course.en.md).
+Version 0.5 provides expanded in-page lessons, six gated levels and separate practical assessments. Pass each once for 100 points; practice awards none. Levels unlock at 300, 500, 700, 900 and 1100 points with all prerequisite exams passed, maximum 1300. Scores are local educational state, not secure exam records. See the [course guide](docs/course.en.md).
 
-Seven local, intentionally vulnerable web lessons with paired fixes: IDOR, reflected XSS, DOM XSS, an edge/origin 403 simulation, account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then solve the manual challenges using editable inputs, evidence and progressive hints. See [hands-on guide](docs/challenges.en.md). All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
+Thirteen local, intentionally vulnerable web lessons with paired fixes: CSRF, CORS, modeled SSRF/redirect, synthetic API-key/file disclosures, IDOR, reflected XSS, DOM XSS, an edge/origin 403 simulation, account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then solve the manual challenges using editable inputs, evidence and progressive hints. See [hands-on guide](docs/challenges.en.md). All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
 
 Created for the Between Bytes community by [khdertaysh1](https://github.com/khdertaysh1).
+
+See [new lesson scope and browser-origin details](docs/advanced.en.md).

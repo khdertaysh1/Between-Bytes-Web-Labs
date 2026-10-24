@@ -9,6 +9,7 @@ const instructions = {
  'dom-xss':{goal:'تتبّع إدخال النص عبر postMessage إلى innerHTML، ثم جرّب نفس المدخل مع textContent.',checks:['رُصد تنفيذ BB-LAB في نقطة إدراج DOM الضعيفة','نفس المدخل صار نصاً في المُصلحة دون إشارة تنفيذ خلال المعاينة'],hints:['المدخل يصل إلى المتصفح كرسالة ولا يذهب للخادم.','innerHTML لا يشغّل وسم script المضاف بهذه الطريقة عادة؛ جرّب حدث عنصر.','مثال داخل الإطار: <img src=x onerror="alert(\'BB-LAB\')">']},
  edge403:{goal:'قارن مساري edge وorigin الوهميين للزائر المجهول، ثم أثبت أن المُصلحة تمنع الاثنين.',checks:['edge الضعيف يعيد 403','origin الضعيف يعيد بيانات إدارية 200','edge المُصلح يعيد 403','origin المُصلح يعيد 403'],hints:['المدخل layer يختار مساراً وهمياً داخل التطبيق نفسه.','جرّب edge ثم origin في الضعيفة.','كرّر الاختبارين في المُصلحة. هذا خطأ صلاحيات الأصل، وليس تجاوز Cloudflare فعلياً.']}
 };
+for(const [id,l] of Object.entries(advancedLessons))instructions[id]={goal:l.goal,checks:l.checks,hints:l.hints};
 function setupChallenge(id, exam=false) {
   if(mission?.pending) mission.pending.cancel();
   mission={id,exam,active:false,rows:[],hints:0,pending:null};
@@ -27,15 +28,18 @@ function setupChallenge(id, exam=false) {
   $('mission-status').textContent='اضغط «ابدأ» ثم عدّل المدخلات بنفسك.';
   $('mission-response').textContent='لم تُرسل طلبات بعد.';
   $('mission-send').disabled=true;$('hint-text').textContent='';$('mission-evidence').textContent='[]';
+  $('browser-frame-area').hidden=true;$('browser-frame').removeAttribute('src');
   $('preview-area').hidden=true;$('xss-preview').removeAttribute('src');
   const mode='<label>النسخة<select id="task-mode"><option value="vulnerable">ضعيفة</option><option value="fixed">مُصلحة</option></select></label>';
   let fields=mode;
-  if(id==='idor') fields+='<label>رقم الفاتورة · resource<input id="task-resource" value="1001" maxlength="12" inputmode="numeric"></label>';
+  if(advancedLessons[id])fields+=advancedInputs(id);
+  else if(id==='idor') fields+='<label>رقم الفاتورة · resource<input id="task-resource" value="1001" maxlength="12" inputmode="numeric"></label>';
   else if(id==='edge403') fields+='<label>المسار الوهمي · layer<select id="task-layer"><option value="edge">edge · البوابة</option><option value="origin">origin · الخادم الأصلي</option></select></label>';
   else if(id.endsWith('xss')) fields+='<label class="wide">مدخل البحث · اكتب بنفسك<textarea id="task-payload" maxlength="1000" dir="ltr">hello</textarea></label>';
   else fields+='<label>البريد<input id="task-email" type="email" value="alice@example.test" required></label>'+(id==='rate-limit'?'<label>ترويسة X-Forwarded-For<input id="task-forwarded" placeholder="فارغ أولاً، ثم غيّر القيمة" maxlength="100"></label>':'');
   $('mission-inputs').innerHTML=fields;
   if(exam&&$('task-email'))$('task-email').value=mission.existing;
+  if(exam&&id==='csrf')$('task-value').value='exam-csrf';
   if(exam&&$('task-resource'))$('task-resource').value=mission.own;
 }
 function gradeMission() {
@@ -43,7 +47,8 @@ function gradeMission() {
   const has=(mode,predicate)=>rows.some(r=>r.mode===mode&&predicate(r));
   const id=mission.id;
   let checks=[];
-  if(id==='idor') checks=[has('vulnerable',r=>r.input===mission.own&&r.status===200&&r.body.invoice?.owner==='alice'),has('vulnerable',r=>r.input===mission.other&&r.status===200&&r.body.invoice?.owner==='bob'),has('fixed',r=>r.input===mission.other&&r.status===403),has('fixed',r=>r.input===mission.own&&r.status===200)];
+  if(advancedLessons[id])checks=gradeAdvanced(id,rows);
+  else if(id==='idor') checks=[has('vulnerable',r=>r.input===mission.own&&r.status===200&&r.body.invoice?.owner==='alice'),has('vulnerable',r=>r.input===mission.other&&r.status===200&&r.body.invoice?.owner==='bob'),has('fixed',r=>r.input===mission.other&&r.status===403),has('fixed',r=>r.input===mission.own&&r.status===200)];
   else if(id==='edge403') checks=['vulnerable','fixed'].flatMap(mode=>['edge','origin'].map(layer=>has(mode,r=>r.input===layer&&r.status===(mode==='vulnerable'&&layer==='origin'?200:403))));
   else if(id==='enumeration') checks=[has('vulnerable',r=>r.input===mission.existing&&r.status===200),has('vulnerable',r=>r.input===mission.missing&&r.status===404),[mission.existing,mission.missing].every(email=>has('fixed',r=>r.input===email&&r.status===202))&&new Set(rows.filter(r=>r.mode==='fixed').map(r=>JSON.stringify(r.body))).size===1];
   else if(id==='rate-limit') {
@@ -124,7 +129,8 @@ $('mission-form').onsubmit=async event=>{
   const id=current,mode=$('task-mode').value;
   try{
     let row;
-    if(id==='idor'||id==='edge403'){
+    if(advancedLessons[id]){row=await runAdvanced(id,mode);$('mission-status').textContent='وصل دليل التجربة. اقرأ آخر استجابة وحدّد الخطوة التالية من قائمة المهمة.';}
+    else if(id==='idor'||id==='edge403'){
       const input=id==='idor'?$('task-resource').value:$('task-layer').value;
       row={mode,input,...await accessRequest(id,mode,id==='idor'?'resource':'layer',input)};
       $('mission-status').textContent=`HTTP ${row.status} · اقرأ الجسم في دفتر الدليل. actor هوية يحددها الخادم، وليست حقلاً ترسله.`;

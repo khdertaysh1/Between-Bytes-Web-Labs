@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-10-24
+
+- Six new explained lessons with practice and scored assessments: CSRF, CORS, open redirect, SSRF, API keys and exposed ENV/backup files.
+- Real two-origin loopback browser exercises for credentialed CORS reads and synthetic-session CSRF writes; automatic second-origin lifecycle.
+- Explicit no-network SSRF transport model, redirect decision preview and in-memory file/secret fixtures.
+- Six levels, 13 assessments and 1300 maximum points; prior scores preserved.
+- 28 passing Python tests, progression checks and browser coverage of all 13 assessments, including real cross-origin behavior and loopback-only requests.
+
+
 ## 0.4.0 — 2026-10-24
 
 - Expanded Arabic in-page explanations for all seven lessons: concepts, request flow, evidence, impact, fixes and limitations.

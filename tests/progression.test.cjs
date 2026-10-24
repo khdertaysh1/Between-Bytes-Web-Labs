@@ -8,7 +8,8 @@ assert.equal(p.points,300);assert.equal(p.canAccess('idor'),true);assert.equal(p
 assert.equal(p.complete(groups[0][0]),false);assert.equal(p.points,300);
 p.complete('idor');assert.equal(p.canAccess('dom-xss'),false);p.complete('edge403');assert.equal(p.points,500);assert.equal(p.canAccess('dom-xss'),true);
 for(const id of groups[2])p.complete(id);assert.equal(p.points,700);
-const restored=new CourseProgress(JSON.parse(JSON.stringify(p.awards)));assert.equal(restored.points,700);
+for(const group of groups.slice(3))for(const id of group)assert.equal(p.complete(id),true);assert.equal(p.points,1300);
+const restored=new CourseProgress(JSON.parse(JSON.stringify(p.awards)));assert.equal(restored.points,1300);
 assert.equal(new CourseProgress({fake:999,idor:500,enumeration:100}).points,100);
 p.reset();assert.equal(p.points,0);assert.equal(p.canAccess('idor'),false);
 console.log('PASS: prerequisites, 300/500 unlocks, one-time points, persistence, reset and invalid records');

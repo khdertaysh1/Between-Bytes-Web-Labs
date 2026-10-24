@@ -1,6 +1,6 @@
 /* Educational local progress; intentionally not a secure examination service. */
 (function(root){
- const groups=[['enumeration','rate-limit','email-flood'],['idor','edge403'],['reflected-xss','dom-xss']];
+ const groups=[['enumeration','rate-limit','email-flood'],['idor','edge403'],['reflected-xss','dom-xss'],['csrf','cors'],['open-redirect','ssrf'],['api-keys','exposed-files']];
  class CourseProgress {
   constructor(saved={}){this.awards={};for(const id of groups.flat())if(saved?.[id]===100)this.awards[id]=100;}
   get points(){return Object.values(this.awards).reduce((a,b)=>a+b,0);}
