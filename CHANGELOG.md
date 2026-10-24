@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-10-24
+
+- Full Arabic/English interface and authored learning content for all 13 rooms, with persisted language and RTL/LTR layouts.
+- Application-themed workspaces across every room and a restricted local HTTP replay workbench.
+- Bounded per-browser classroom state, server-observed journals and per-round synthetic flags for server-observable criteria.
+- Explicit browser-assisted verification boundaries for XSS/CORS; modeled SSRF/redirect/file scope preserved.
+- All rooms remain open without points or prerequisite locks.
+- 33 Python tests plus both-language browser workflow and localization/workbench/session checks.
+
+
 ## 0.6.0 — 2026-10-24
 
 - Removed points and all prerequisite locks. All 13 lessons and exercises are open immediately in any order.

@@ -37,9 +37,10 @@ def csrf_write(labs,mode,origin,expected,cookie,value,token):
     return 200,{'changed':True,'note':value,'synthetic_account':'alice'}
 
 
-def attack_document(main_origin,action,mode,value,nonce):
+def attack_document(main_origin,action,mode,value,nonce,language="ar"):
     data=json.dumps({'main':main_origin,'action':action,'mode':mode,'value':value,'nonce':nonce}).replace('<','\\u003c')
-    return '''<!doctype html><html><meta charset="utf-8"><title>Local second origin</title><body style="background:#eff4e8;color:#172519;font:14px Arial,sans-serif;padding:12px" dir="rtl"><p>صفحة تدريب محلية ثانية — نتيجة الطلب تظهر في دفتر الدليل.</p><script>
+    heading='Local second-origin training page. Inspect evidence in the main workspace.' if language=='en' else 'صفحة تدريب محلية ثانية — نتيجة الطلب تظهر في دفتر الدليل.'
+    return '''<!doctype html><html><meta charset="utf-8"><title>Local second origin</title><body style="background:#eff4e8;color:#172519;font:14px Arial,sans-serif;padding:12px" ><p>'''+heading+'''</p><script>
 const cfg='''+data+''';
 (async()=>{
  let result={type:'bb-browser',nonce:cfg.nonce,action:cfg.action,mode:cfg.mode};
@@ -71,7 +72,7 @@ class Sidecar(HTTPServer):
                     action=q.get('action',[''])[0];mode=q.get('mode',[''])[0];value=q.get('value',[''])[0];nonce=q.get('nonce',[''])[0]
                     if url.path!='/attack' or action not in {'csrf','cors'} or mode not in {'vulnerable','fixed'} or len(value)>80 or not re.fullmatch('[a-f0-9]{32}',nonce):
                         raise ValueError('Invalid input')
-                    body=attack_document(main_origin,action,mode,value,nonce).encode()
+                    body=attack_document(main_origin,action,mode,value,nonce,q.get('lang',['ar'])[0]).encode()
                 except ValueError:
                     self.send_error(400);return
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Length',str(len(body)))

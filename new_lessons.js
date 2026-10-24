@@ -31,9 +31,9 @@ for(const [id,l] of Object.entries(advancedLessons)){
  courseContent[id]={goal:l.goal,sections:l.sections,sample:l.sample,exam:l.exam};
 }
 function advancedInputs(id){
- if(id==='csrf'||id==='cors')return '<label>مصدر الطلب<select id="task-source"><option value="attacker">صفحة ثانية · أصل محلي مختلف</option><option value="legitimate">طلب شرعي · نفس الأصل</option></select></label>'+(id==='csrf'?'<label>ملاحظة الحساب الوهمي<input id="task-value" value="training-csrf" maxlength="80"></label>':'');
+ if(id==='csrf'||id==='cors')return tr('<label>مصدر الطلب<select id="task-source"><option value="attacker">صفحة ثانية · أصل محلي مختلف</option><option value="legitimate">طلب شرعي · نفس الأصل</option></select></label>')+(id==='csrf'?tr('<label>ملاحظة الحساب الوهمي<input id="task-value" value="training-csrf" maxlength="80"></label>'):'');
  const value=id==='ssrf'?'http://public.lab/welcome':id==='open-redirect'?'/welcome':id==='api-keys'?'/robots.txt':'/robots.txt';
- return `<label class="wide">${id==='ssrf'?'عنوان في محرك النقل الوهمي':id==='open-redirect'?'وجهة التحويل · next':'مسار في متصفح العينات'}<input id="task-value" value="${value}" maxlength="500" dir="ltr"></label>`;
+ return tr(`<label class="wide">${id==='ssrf'?'عنوان في محرك النقل الوهمي':id==='open-redirect'?'وجهة التحويل · next':'مسار في متصفح العينات'}<input id="task-value" value="${value}" maxlength="500" dir="ltr"></label>`);
 }
 function gradeAdvanced(id,rows){
  const has=(mode,fn)=>rows.some(r=>r.mode===mode&&fn(r));
@@ -56,10 +56,10 @@ async function browserMessage(config,id,mode,value){
  return new Promise((resolve,reject)=>{
   const cleanup=()=>{clearTimeout(timer);window.removeEventListener('message',receive);mission.pending=null;};
   const receive=event=>{if(event.source!==frame.contentWindow||event.origin!==config.attack_origin||event.data?.nonce!==nonce||event.data.type!=='bb-browser')return;cleanup();resolve(event.data);};
-  const timer=setTimeout(()=>{cleanup();reject(new Error('تعذر تحميل الأصل المحلي الثاني أو استلام دليل المتصفح'));},8000);
-  mission.pending={cancel:()=>{cleanup();reject(new Error('أُوقفت الجولة'));}};
+  const timer=setTimeout(()=>{cleanup();reject(new Error(tr('تعذر تحميل الأصل المحلي الثاني أو استلام دليل المتصفح')));},8000);
+  mission.pending={cancel:()=>{cleanup();reject(new Error(tr('أُوقفت الجولة')));}};
   window.addEventListener('message',receive);$('browser-frame-area').hidden=false;
-  frame.src=config.attack_origin+'/attack?'+new URLSearchParams({action:id,mode,value,nonce});
+  frame.src=config.attack_origin+'/attack?'+new URLSearchParams({action:id,mode,value,nonce,lang:I18n.lang});
  });
 }
 async function runAdvanced(id,mode){

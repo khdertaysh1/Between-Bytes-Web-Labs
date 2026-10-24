@@ -7,18 +7,19 @@ const assert=require('node:assert/strict');
  const page=await browser.newPage({viewport:{width:1440,height:1050}});
  const errors=[];const requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
  await page.goto('http://127.0.0.1:8000');
+ if(process.env.BB_TEST_LANGUAGE==='en'){await page.evaluate(()=>localStorage.setItem('bb-language','en'));await page.reload();}
  assert.equal(await page.locator('.lab-card').count(),13);
  async function start(id,exam=true){await page.goto('http://127.0.0.1:8000/#'+id);await page.locator('[data-tab=learn]').click();await page.locator('#go-experiment').click();if(exam){await page.locator('#go-fix').click();await page.locator('#exam-start').click();}else{await page.locator('#mission-start').click();}await page.waitForFunction(()=>!document.getElementById('mission-send').disabled);}
  async function send(){await page.locator('#mission-send').click();await page.waitForFunction(()=>!document.getElementById('mission-send').disabled);}
  async function mode(value){await page.locator('#task-mode').selectOption(value);}
- async function solved(){assert.ok((await page.locator('#mission-status').innerText()).includes('اجتزت الاختبار'));}
+ async function solved(){assert.equal(await page.locator('#mission-checks li:not(.done)').count(),0);assert.ok(await page.locator('#mission-checks li').count()>0);}
  for(const id of ['enumeration','rate-limit','email-flood','idor','edge403','reflected-xss','dom-xss','csrf','cors','open-redirect','ssrf','api-keys','exposed-files']){
   await page.goto('http://127.0.0.1:8000/#'+id);await page.waitForFunction(()=>!document.getElementById('lesson').hidden);
  }
  assert.equal(await page.locator('.locked').count(),0);assert.equal(await page.locator('#score-total').count(),0);
  await start('enumeration',false);
  for(const m of ['vulnerable','fixed']){await mode(m);for(const email of ['alice@example.test','nobody@example.test']){await page.locator('#task-email').fill(email);await send();}}
- assert.ok((await page.locator('#mission-status').innerText()).includes('حُلّ التحدي التدريبي'));
+ assert.equal(await page.locator('#mission-checks li:not(.done)').count(),0);
  await start('enumeration');
  for(const m of ['vulnerable','fixed']){await mode(m);for(const email of ['bob@example.test','visitor@example.test']){await page.locator('#task-email').fill(email);await send();}}
  await solved();console.log('enumeration challenge PASS');
@@ -31,7 +32,7 @@ const assert=require('node:assert/strict');
  const payload='<img src=x onerror="alert(\'BB-EXAM\')">';
  for(const id of ['reflected-xss','dom-xss']){
   await start(id);await page.locator('#task-payload').fill('<b>hello</b>');await send();
-  assert.ok(!(await page.locator('#mission-status').innerText()).includes('اجتزت الاختبار'));
+  assert.ok(await page.locator('#mission-checks li:not(.done)').count()>0);
   await page.locator('#task-payload').fill(payload);await send();
   let rows=JSON.parse(await page.locator('#mission-evidence').textContent());assert.equal(rows.at(-1).executed,true);
   await mode('fixed');await send();await solved();
@@ -65,7 +66,7 @@ const assert=require('node:assert/strict');
  if(process.env.BB_SCREENSHOT_DIR)await page.screenshot({path:process.env.BB_SCREENSHOT_DIR+'/labs-desktop-v3.png',fullPage:true});
  assert.deepEqual(errors,[]);assert.ok(requests.every(url=>new URL(url).hostname==='127.0.0.1')); 
  // Clearing completion never locks a lesson; demos still do not complete an assessment.
- page.once('dialog',dialog=>dialog.accept());await page.locator('#clear-progress').click();await page.goto('http://127.0.0.1:8000/#enumeration');await page.locator('#go-experiment').click();await page.locator('#compare').click();await page.waitForFunction(()=>document.getElementById('live-status').textContent.includes('اكتملت المقارنة'));
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#clear-progress').click();await page.goto('http://127.0.0.1:8000/#enumeration');await page.locator('#go-experiment').click();await page.locator('#compare').click();await page.waitForFunction(()=>document.getElementById('live-status').textContent.includes('اكتملت المقارنة')||document.getElementById('live-status').textContent.includes('comparison finished'));
  assert.equal(await page.locator('#progress').innerText(),'0 / 13');
  await page.goto('http://127.0.0.1:8000/#exposed-files');await page.waitForFunction(()=>!document.getElementById('lesson').hidden);
  console.log('All 13 lessons open from fresh and reset state; exercises, completion, browser isolation and mobile PASS');

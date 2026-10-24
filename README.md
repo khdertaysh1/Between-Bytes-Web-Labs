@@ -2,7 +2,7 @@
 
 مختبرات عربية لفهم ثغرات تطبيقات الويب: تجربة واضحة، سبب برمجي، وإصلاح يمكن التحقق منه.
 
-**الإصدار 0.6:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع منصة دروس عربية تناسب الهاتف.
+**الإصدار 0.7:** ثلاثة عشر مختبراً مستقلاً، كل واحد بنسخة ضعيفة `vulnerable` ونسخة مُصلحة `fixed`. يعمل المشروع محلياً على Python 3.10+ دون مكتبات خارجية، مع غرف تفاعلية بالعربية والإنكليزية تناسب الهاتف.
 
 | المختبر | الخطأ المتعمّد | ما يوضحه الإصلاح |
 |---|---|---|
@@ -36,21 +36,18 @@ python app.py
 
 إذا كان المنفذ مشغولاً: `python app.py --port 8001` ثم افتح `http://127.0.0.1:8001`.
 
-## أول تجربة خلال دقيقة
+## أول تجربة
 
-1. اختر **أي درس** واقرأ الشرح الموسّع داخل الصفحة.
-2. انتقل إلى **جرّب وقارن** وابدأ التدريب اليدوي؛ عدّل المدخلات واجمع الأدلة واستعن بالتلميحات.
-3. افتح **افهم الإصلاح** لمراجعة السبب وحدود الحل.
-4. اضغط **ابدأ الاختبار العملي**: جولة جديدة دون تلميحات، وببيانات اختبار مذكورة في المهمة.
-5. أكمل قائمة الأدلة وراجع تفسير النتيجة. يمكنك الانتقال لأي درس في أي وقت.
+اختر اللغة من الزر أعلى الصفحة؛ كل الدروس مفتوحة. افتح أي غرفة، اقرأ الشرح، ثم ابدأ التدريب وشغّل نموذج التطبيق الوهمي بنفسك. افحص الطلب والاستجابة، جرّب الإصلاح، ثم انتقل للتمرين المستقل إذا أردت. لا توجد نقاط أو شروط انتقال.
 
-**جميع الدروس والتمارين مفتوحة من البداية.** المستويات الستة تقسيم للموضوعات فقط؛ اختر الترتيب الذي يناسبك. لا يوجد رصيد أو شرط اجتياز لفتح درس.
+- سياق تطبيق مختلف لكل غرفة، وليس IDOR فقط.
+- محرر طلبات HTTP محلي لتعديل وإعادة طلبات الغرف المناسبة؛ غرف المتصفح تعرض أدلة التنفيذ/القراءة الفعلية.
+- حالة تعليمية منفصلة لكل متصفح، وسجل للطلبات التي رصدها الخادم، وعلامات محلية للغرف التي تسمح معاييرها بذلك.
+- دعم RTL/LTR وحفظ اللغة وعلامات الإنجاز، دون أي خدمة ترجمة خارجية.
 
-[تفاصيل الدروس الستة الجديدة وحدودها](docs/advanced.ar.md) · [دليل المستويات والاختبارات](docs/course.ar.md) · [English course guide](docs/course.en.md) · [دليل التمارين](docs/challenges.ar.md)
+[شرح الغرف بالعربي](docs/rooms.ar.md) · [Room guide in English](docs/rooms.en.md) · [حدود الدروس الإضافية](docs/advanced.ar.md)
 
-التقدّم محفوظ محلياً على نفس المتصفح، وليس نظام امتحانات محصناً ضد تعديل المستخدم أو نظام شهادات. علامات الإنجاز اختيارية ولا تتحكم بالوصول. بدء جولة يمسح عدّادات الخادم والبريد الوهمي؛ الجولة تسمح حتى 60 تجربة.
-
-الحسابات الوهمية الموجودة في دروس البريد: `alice@example.test` و`bob@example.test`. لا توجد حسابات فعلية أو كلمات سر أو رسائل تُرسل للخارج. زر **تصفير عدّادات المختبرات والبريد** يمسح العدّادات والبريد في النسختين، وإعادة التشغيل تمسح بيانات الخادم المؤقتة؛ علامات الإنجاز تبقى محفوظة في المتصفح.
+النماذج والحسابات والمفاتيح والبريد وهمية. بعض الغرف نقل أو سياسة محاكاة، وليست كل الغرف آلات هدف كاملة؛ الدليل يميّز ذلك. تبديل اللغة يعيد تحميل العرض ويحتفظ بالإنجاز، لكن يلزم بدء جولة جديدة لاستئناف دفتر دليل غير محفوظ.
 
 ## الاختبارات
 
@@ -78,7 +75,10 @@ XSS يعمل داخل إطار sandbox منفصل عن أصل المنصة، م�
 
 ## English
 
-Version 0.6 makes all 13 lessons and exercises available immediately, in any order. Six levels organize topics only; there are no points or prerequisites. Optional local completion marks remain. See the [course guide](docs/course.en.md).
+All 13 rooms now have themed application workspaces and a full Arabic/English learning edition. Switch language in the header; its preference persists. Nine HTTP-handler rooms support restricted local request replay; four browser-dependent rooms use real browser workflows instead. Per-browser synthetic state and a server-observation journal complement the existing evidence checklist. This is a local classroom application, not cloud VMs or a secure hosted examination service. See [room architecture and limits](docs/rooms.en.md).
+
+
+Version 0.7 makes all 13 lessons and exercises available immediately, in any order. Six levels organize topics only; there are no points or prerequisites. Optional local completion marks remain. See the [course guide](docs/course.en.md).
 
 Thirteen local, intentionally vulnerable web lessons with paired fixes: CSRF, CORS, modeled SSRF/redirect, synthetic API-key/file disclosures, IDOR, reflected XSS, DOM XSS, an edge/origin 403 simulation, account enumeration, trusting spoofed proxy identity for rate limiting, and repeated reset-email generation. Python 3.10+, standard library only. Run `python app.py`, open `http://127.0.0.1:8000`, then solve the manual challenges using editable inputs, evidence and progressive hints. See [hands-on guide](docs/challenges.en.md). All mail is captured in memory for two synthetic accounts; no external delivery or target scanner exists. See [English guide](docs/lessons.en.md).
 

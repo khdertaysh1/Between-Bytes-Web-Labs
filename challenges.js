@@ -10,6 +10,7 @@ const instructions = {
  edge403:{goal:'قارن مساري edge وorigin الوهميين للزائر المجهول، ثم أثبت أن المُصلحة تمنع الاثنين.',checks:['edge الضعيف يعيد 403','origin الضعيف يعيد بيانات إدارية 200','edge المُصلح يعيد 403','origin المُصلح يعيد 403'],hints:['المدخل layer يختار مساراً وهمياً داخل التطبيق نفسه.','جرّب edge ثم origin في الضعيفة.','كرّر الاختبارين في المُصلحة. هذا خطأ صلاحيات الأصل، وليس تجاوز Cloudflare فعلياً.']}
 };
 for(const [id,l] of Object.entries(advancedLessons))instructions[id]={goal:l.goal,checks:l.checks,hints:l.hints};
+I18n.applyInstructions(instructions);
 function setupChallenge(id, exam=false) {
   if(mission?.pending) mission.pending.cancel();
   mission={id,exam,active:false,rows:[],hints:0,pending:null};
@@ -18,29 +19,30 @@ function setupChallenge(id, exam=false) {
   mission.own=exam?'2001':'1001';mission.other=exam?'2002':'1002';mission.marker=exam?'BB-EXAM':'BB-LAB';
   if(exam){spec.goal=courseContent[id].exam;spec.checks=spec.checks.map(t=>t.replaceAll('BB-LAB','BB-EXAM'));}
   mission.spec=spec;
-  $('mission-start').textContent=exam?'إعادة بدء الاختبار':'ابدأ / صفّر التدريب';
-  $('mission-kind').textContent=exam?'تمرين اختباري مستقل':'تدريب مع تلميحات';
-  $('mission-title').textContent=exam?'طبّق ما فهمته دون تلميحات':'اكتشف الفرق بنفسك';
+  $('mission-start').textContent=exam?tr('إعادة بدء الاختبار'):tr('ابدأ / صفّر التدريب');
+  $('mission-kind').textContent=exam?tr('تمرين اختباري مستقل'):tr('تدريب مع تلميحات');
+  $('mission-title').textContent=exam?tr('طبّق ما فهمته دون تلميحات'):tr('اكتشف الفرق بنفسك');
   document.querySelector('.hints').hidden=exam;
   $('guided-demo').hidden=exam||!!extraLessons[id];
   $('mission-goal').textContent=spec.goal;
   $('mission-checks').replaceChildren(...spec.checks.map(text=>{const li=document.createElement('li');li.textContent='○ '+text;return li;}));
-  $('mission-status').textContent='اضغط «ابدأ» ثم عدّل المدخلات بنفسك.';
-  $('mission-response').textContent='لم تُرسل طلبات بعد.';
+  $('mission-status').textContent=tr('اضغط «ابدأ» ثم عدّل المدخلات بنفسك.');
+  $('mission-response').textContent=tr('لم تُرسل طلبات بعد.');
   $('mission-send').disabled=true;$('hint-text').textContent='';$('mission-evidence').textContent='[]';
   $('browser-frame-area').hidden=true;$('browser-frame').removeAttribute('src');
   $('preview-area').hidden=true;$('xss-preview').removeAttribute('src');
-  const mode='<label>النسخة<select id="task-mode"><option value="vulnerable">ضعيفة</option><option value="fixed">مُصلحة</option></select></label>';
+  const mode=tr('<label>النسخة<select id="task-mode"><option value="vulnerable">ضعيفة</option><option value="fixed">مُصلحة</option></select></label>');
   let fields=mode;
   if(advancedLessons[id])fields+=advancedInputs(id);
-  else if(id==='idor') fields+='<label>رقم الفاتورة · resource<input id="task-resource" value="1001" maxlength="12" inputmode="numeric"></label>';
-  else if(id==='edge403') fields+='<label>المسار الوهمي · layer<select id="task-layer"><option value="edge">edge · البوابة</option><option value="origin">origin · الخادم الأصلي</option></select></label>';
-  else if(id.endsWith('xss')) fields+='<label class="wide">مدخل البحث · اكتب بنفسك<textarea id="task-payload" maxlength="1000" dir="ltr">hello</textarea></label>';
-  else fields+='<label>البريد<input id="task-email" type="email" value="alice@example.test" required></label>'+(id==='rate-limit'?'<label>ترويسة X-Forwarded-For<input id="task-forwarded" placeholder="فارغ أولاً، ثم غيّر القيمة" maxlength="100"></label>':'');
+  else if(id==='idor') fields+=tr('<label>رقم الفاتورة · resource<input id="task-resource" value="1001" maxlength="12" inputmode="numeric"></label>');
+  else if(id==='edge403') fields+=tr('<label>المسار الوهمي · layer<select id="task-layer"><option value="edge">edge · البوابة</option><option value="origin">origin · الخادم الأصلي</option></select></label>');
+  else if(id.endsWith('xss')) fields+=tr('<label class="wide">مدخل البحث · اكتب بنفسك<textarea id="task-payload" maxlength="1000" dir="ltr">hello</textarea></label>');
+  else fields+=tr('<label>البريد<input id="task-email" type="email" value="alice@example.test" required></label>')+(id==='rate-limit'?tr('<label>ترويسة X-Forwarded-For<input id="task-forwarded" placeholder="فارغ أولاً، ثم غيّر القيمة" maxlength="100"></label>'):'');
   $('mission-inputs').innerHTML=fields;
   if(exam&&$('task-email'))$('task-email').value=mission.existing;
   if(exam&&id==='csrf')$('task-value').value='exam-csrf';
   if(exam&&$('task-resource'))$('task-resource').value=mission.own;
+  if(typeof RoomUI!=='undefined')RoomUI.render();
 }
 function gradeMission() {
   const rows=mission.rows;
@@ -64,23 +66,24 @@ function gradeMission() {
   if(checks.every(Boolean)) {
     if(mission.exam){
       const fresh=courseProgress.complete(id);saveProgress();
-      $('mission-status').textContent=fresh?'اجتزت الاختبار العملي! يمكنك الانتقال لأي درس تختاره.':'اجتزت الاختبار مجدداً. يمكنك إعادة التدريب أو اختيار أي درس آخر.';
+      $('mission-status').textContent=fresh?tr('اجتزت الاختبار العملي! يمكنك الانتقال لأي درس تختاره.'):tr('اجتزت الاختبار مجدداً. يمكنك إعادة التدريب أو اختيار أي درس آخر.');
     }else{
-      completed.add(id);saveProgress();$('mission-status').textContent='حُلّ التحدي التدريبي. راجع شرح الإصلاح ثم جرّب الاختبار العملي لتطبيق فهمك.';
+      completed.add(id);saveProgress();$('mission-status').textContent=tr('حُلّ التحدي التدريبي. راجع شرح الإصلاح ثم جرّب الاختبار العملي لتطبيق فهمك.');
     }
   }
 }
 function addEvidence(row) {
   $('mission-response').textContent=JSON.stringify(row,null,2);
   mission.rows.push({...row,at:new Date().toISOString()});
+  if(typeof RoomUI!=='undefined')RoomUI.showApplicationResult(row);
   $('mission-evidence').textContent=JSON.stringify(mission.rows,null,2);
   gradeMission();
 }
 async function startMission(exam=false){
   if(busy)return;
   lock(true);$('mission-send').disabled=true;
-  try{await reset();setupChallenge(current,exam);mission.active=true;$('mission-status').textContent=exam?'بدأ الاختبار: اقرأ المهمة واجمع الأدلة دون تلميحات.':'التدريب جاهز. عدّل المدخلات واقرأ النتائج.';tab('experiment');}
-  catch(error){$('mission-status').textContent='تعذر بدء الجولة: '+error.message;}
+  try{if(typeof RoomUI!=='undefined')await RoomUI.start();await reset();setupChallenge(current,exam);mission.active=true;$('mission-status').textContent=exam?tr('بدأ الاختبار: اقرأ المهمة واجمع الأدلة دون تلميحات.'):tr('التدريب جاهز. عدّل المدخلات واقرأ النتائج.');tab('experiment');}
+  catch(error){$('mission-status').textContent=tr('تعذر بدء الجولة: ')+error.message;}
   finally{lock(false);$('mission-send').disabled=!mission.active;}
 }
 $('mission-start').onclick=()=>startMission(mission?.exam||false);
@@ -116,35 +119,36 @@ function previewXss(kind,mode,input) {
       }
     }
     window.addEventListener('message',onMessage);
-    const timeout=setTimeout(()=>finish(new Error('لم تصل نتيجة من إطار التدريب. تحقق من تحميله وسياسة المتصفح.')),5000);
-    mission.pending={cancel:()=>finish(new Error('توقفت معاينة التحدي'))};
+    const timeout=setTimeout(()=>finish(new Error(tr('لم تصل نتيجة من إطار التدريب. تحقق من تحميله وسياسة المتصفح.'))),5000);
+    mission.pending={cancel:()=>finish(new Error(tr('توقفت معاينة التحدي')))};
     $('preview-area').hidden=false;
     frame.src=path;
   });
 }
 $('mission-form').onsubmit=async event=>{
   event.preventDefault();if(busy||!mission.active)return;
-  if(mission.rows.length>=60){$('mission-status').textContent='وصلت لحد 60 تجربة في هذه الجولة؛ ابدأ جولة جديدة.';return;}
+  if(mission.rows.length>=60){$('mission-status').textContent=tr('وصلت لحد 60 تجربة في هذه الجولة؛ ابدأ جولة جديدة.');return;}
   lock(true);$('mission-send').disabled=true;$('mission-start').disabled=true;
   const id=current,mode=$('task-mode').value;
   try{
     let row;
-    if(advancedLessons[id]){row=await runAdvanced(id,mode);$('mission-status').textContent='وصل دليل التجربة. اقرأ آخر استجابة وحدّد الخطوة التالية من قائمة المهمة.';}
+    if(advancedLessons[id]){row=await runAdvanced(id,mode);$('mission-status').textContent=tr('وصل دليل التجربة. اقرأ آخر استجابة وحدّد الخطوة التالية من قائمة المهمة.');}
     else if(id==='idor'||id==='edge403'){
       const input=id==='idor'?$('task-resource').value:$('task-layer').value;
       row={mode,input,...await accessRequest(id,mode,id==='idor'?'resource':'layer',input)};
-      $('mission-status').textContent=`HTTP ${row.status} · اقرأ الجسم في دفتر الدليل. actor هوية يحددها الخادم، وليست حقلاً ترسله.`;
+      $('mission-status').textContent=tr(`HTTP ${row.status} · اقرأ الجسم في دفتر الدليل. actor هوية يحددها الخادم، وليست حقلاً ترسله.`);
     }else if(id.endsWith('xss')){
       row=await previewXss(id,mode,$('task-payload').value);
-      $('mission-status').textContent=row.executed?'رُصدت إشارة التنفيذ المطلوبة داخل الإطار.':'لم تُرصد إشارة التنفيذ المطلوبة خلال المعاينة. هذه النتيجة وحدها لا تثبت سلامة أي مدخل آخر.';
+      $('mission-status').textContent=row.executed?tr('رُصدت إشارة التنفيذ المطلوبة داخل الإطار.'):tr('لم تُرصد إشارة التنفيذ المطلوبة خلال المعاينة. هذه النتيجة وحدها لا تثبت سلامة أي مدخل آخر.');
     }else{
       const input=$('task-email').value.trim().toLowerCase();const forwarded=id==='rate-limit'?$('task-forwarded').value:'';
       row={mode,input,forwarded,...await post(`/lab/${id}/${mode}`,input,forwarded)};
       if(id==='email-flood')row.mail_count=(await inbox()).filter(m=>m.mode===mode).length;
-      $('mission-status').textContent=`HTTP ${row.status}${row.mail_count!==undefined?' · الرسائل في هذه النسخة: '+row.mail_count:''}. اقرأ الدليل وعدّل المدخل للخطوة التالية.`;
+      $('mission-status').textContent=tr(`HTTP ${row.status}${row.mail_count!==undefined?' · الرسائل في هذه النسخة: '+row.mail_count:''}. اقرأ الدليل وعدّل المدخل للخطوة التالية.`);
     }
     addEvidence(row);
-  }catch(error){$('mission-status').textContent='تعذر إكمال الطلب: '+error.message;}
+    if(typeof RoomUI!=='undefined')await RoomUI.refreshVerification();
+  }catch(error){$('mission-status').textContent=tr('تعذر إكمال الطلب: ')+error.message;}
   finally{lock(false);$('mission-start').disabled=false;$('mission-send').disabled=!mission.active;}
 };
 $('mission-hint').onclick=()=>{if(mission.exam)return;const hints=instructions[current].hints;mission.hints=Math.min(mission.hints+1,hints.length);$('hint-text').textContent=hints.slice(0,mission.hints).map((text,i)=>`${i+1}. ${text}`).join('\n');};

@@ -81,7 +81,7 @@ const courseContent = {
 function renderCourse(id){
  const content=courseContent[id];
  const root=$('expanded-lesson');root.replaceChildren();
- const goal=document.createElement('p');goal.className='learning-goal';goal.textContent='بعد هذا الدرس: '+content.goal;root.append(goal);
+ const goal=document.createElement('p');goal.className='learning-goal';goal.textContent=tr('بعد هذا الدرس: ')+content.goal;root.append(goal);
  content.sections.forEach(([title,text],i)=>{const section=document.createElement('section');const h=document.createElement('h3');h.textContent=`${i+1}. ${title}`;const p=document.createElement('p');p.textContent=text;section.append(h,p);root.append(section);});
  const example=document.createElement('pre');example.dir='ltr';example.textContent=content.sample;root.append(example);
  $('exam-brief').textContent=content.exam;

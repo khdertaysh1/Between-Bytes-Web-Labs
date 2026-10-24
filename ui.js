@@ -54,6 +54,7 @@ const lessons = {
   }
 };
 Object.assign(lessons, extraLessons);
+I18n.applyLessons(lessons);
 let current = 'enumeration';
 let busy = false;
 const orderedLessons=Course.groups.flat().map(id=>[id,lessons[id]]);
@@ -68,20 +69,20 @@ function saveProgress(){
  $('progress').textContent=`${passed} / ${Object.keys(lessons).length}`;$('progress-bar').style.width=`${passed/Object.keys(lessons).length*100}%`;
  for(const element of document.querySelectorAll('[data-completion]')){
   const id=element.dataset.completion;
-  element.textContent=courseProgress.finished[id]?'اجتزت التمرين ✓':completed.has(id)?'التدريب مكتمل · جرّب الاختبار':'افتح الدرس ←';
+  element.textContent=courseProgress.finished[id]?tr('اجتزت التمرين ✓'):completed.has(id)?tr('التدريب مكتمل · جرّب الاختبار'):tr('افتح الدرس ←');
  }
- const names=['أساسيات الحسابات والحدود','صلاحيات الموارد والطبقات','حقن JavaScript وسياقات العرض','الطلبات والأصول في المتصفح','الوجهات وطلبات الخادم','المعلومات والأسرار المنشورة'];
+ const names=[tr('أساسيات الحسابات والحدود'),tr('صلاحيات الموارد والطبقات'),tr('حقن JavaScript وسياقات العرض'),tr('الطلبات والأصول في المتصفح'),tr('الوجهات وطلبات الخادم'),tr('المعلومات والأسرار المنشورة')];
  $('roadmap').replaceChildren(...Course.groups.map((ids,i)=>{
   const div=document.createElement('div');div.className='roadmap-level';
-  const title=document.createElement('h3');title.textContent=`المستوى ${i+1} · ${names[i]}`;
+  const title=document.createElement('h3');title.textContent=tr(`المستوى ${i+1} · ${names[i]}`);
   const p=document.createElement('p');const count=ids.filter(id=>courseProgress.finished[id]).length;
-  p.textContent=`مفتوح للجميع · ${count} / ${ids.length} تمارين مكتملة`;
+  p.textContent=tr(`مفتوح للجميع · ${count} / ${ids.length} تمارين مكتملة`);
   div.classList.toggle('available',courseProgress.canAccess(ids[0]));div.append(title,p);return div;
  }));
 }
 // All inserted markup below is authored lesson content; HTTP/user data uses textContent.
 $('navigation').innerHTML = Object.entries(lessons).map(([id,l]) => `<a href="#${id}" class="nav-item" data-nav="${id}"><b class="nav-number">${l.number}</b>${l.title}<span>←</span></a>`).join('');
-$('cards').innerHTML = Object.entries(lessons).map(([id,l]) => `<a class="lab-card" href="#${id}"><div class="card-top"><span class="number">${l.number}</span><span class="level">مستوى ${courseProgress.level(id)} · ${l.time}</span></div><h3>${l.title}</h3><span class="english" dir="ltr">${l.english}</span><p>${l.short}</p><div class="card-bottom"><span data-completion="${id}">افتح المختبر ←</span><span>ضعيف / مُصلح</span></div></a>`).join('');
+$('cards').innerHTML = Object.entries(lessons).map(([id,l]) => tr(`<a class="lab-card" href="#${id}"><div class="card-top"><span class="number">${l.number}</span><span class="level">مستوى ${courseProgress.level(id)} · ${l.time}</span></div><h3>${l.title}</h3><span class="english" dir="ltr">${l.english}</span><p>${l.short}</p><div class="card-bottom"><span data-completion="${id}">افتح المختبر ←</span><span>ضعيف / مُصلح</span></div></a>`)).join('');
 function tab(name) {
   for (const id of ['learn','experiment','fix']) $(id).hidden = id !== name;
   for (const button of document.querySelectorAll('[data-tab]')) {
@@ -99,22 +100,22 @@ function route() {
   $('lesson').hidden = home;
   $('home-link').classList.toggle('active', home);
   for (const element of document.querySelectorAll('[data-nav]')) element.classList.toggle('active', !home && element.dataset.nav === id);
-  if (home) { document.title = 'Between Bytes — مختبرات أمن الويب'; return; }
+  if (home) { document.title = tr('Between Bytes — مختبرات أمن الويب'); return; }
   current = id;
   renderCourse(id);
   const l = lessons[id];
   document.title = `${l.title} — Between Bytes`;
-  for (const [key,value] of Object.entries({'lesson-meta':`مختبر ${l.number} / ${l.english} / ${l.time}`,'lesson-title':l.title,'lesson-subtitle':l.subtitle,'scenario-title':l.scenario,'scenario-body':l.body,'experiment-copy':l.copy,'root-title':l.root,'root-body':l.cause,'bad-code':l.bad,'good-code':l.good,limits:l.limits,question:l.question,answer:l.answer})) $(key).textContent = value;
+  for (const [key,value] of Object.entries({'lesson-meta':tr(`مختبر ${l.number} / ${l.english} / ${l.time}`),'lesson-title':l.title,'lesson-subtitle':l.subtitle,'scenario-title':l.scenario,'scenario-body':l.body,'experiment-copy':l.copy,'root-title':l.root,'root-body':l.cause,'bad-code':l.bad,'good-code':l.good,limits:l.limits,question:l.question,answer:l.answer})) $(key).textContent = value;
   $('steps').replaceChildren(...l.steps.map(text => { const li = document.createElement('li'); li.textContent = text; return li; }));
   $('forwarded-label').hidden = id !== 'rate-limit';
   $('takeaway').hidden = true;
   $('live-status').textContent = '';
-  $('manual-response').textContent = 'الاستجابة ستظهر هنا.';
+  $('manual-response').textContent = tr('الاستجابة ستظهر هنا.');
   $('outbox').textContent = '[]';
-  for (const mode of ['vulnerable','fixed']) $(mode+'-result').innerHTML = '<p class="empty">شغّل المقارنة لتشاهد النتيجة هنا.</p>';
+  for (const mode of ['vulnerable','fixed']) $(mode+'-result').innerHTML = tr('<p class="empty">شغّل المقارنة لتشاهد النتيجة هنا.</p>');
   const ids = Object.keys(lessons); const next = ids[ids.indexOf(id)+1];
   $('next-lesson').href = next ? '#'+next : '#home';
-  $('next-lesson').textContent = next ? 'المختبر التالي ←' : 'ارجع لمسارك التعليمي ←';
+  $('next-lesson').textContent = next ? tr('المختبر التالي ←') : tr('ارجع لمسارك التعليمي ←');
   $('guided-demo').hidden = !!extraLessons[id];
   if (typeof setupChallenge === 'function') setupChallenge(id);
   tab('learn');
@@ -127,17 +128,17 @@ async function post(path, email='alice@example.test', forwarded='') {
 }
 async function reset() {
   const r = await post('/reset');
-  if (r.status !== 200) throw new Error('تعذر تصفير المختبرات');
+  if (r.status !== 200) throw new Error(tr('تعذر تصفير المختبرات'));
 }
 async function inbox() {
   const r = await fetch('/outbox', {signal:AbortSignal.timeout(8000)});
-  if (!r.ok) throw new Error('تعذر قراءة صندوق البريد');
+  if (!r.ok) throw new Error(tr('تعذر قراءة صندوق البريد'));
   return (await r.json()).messages;
 }
 function lock(value) {
   busy = value;
   for (const button of document.querySelectorAll('#compare, #manual button, #reset, #refresh')) button.disabled = value;
-  $('compare').textContent = value ? 'جارٍ تنفيذ الطلبات…' : 'شغّل المقارنة';
+  $('compare').textContent = value ? tr('جارٍ تنفيذ الطلبات…') : tr('شغّل المقارنة');
 }
 function showResult(mode, rows, count) {
   const root = $(mode+'-result'); root.replaceChildren();
@@ -145,10 +146,10 @@ function showResult(mode, rows, count) {
   metric.textContent = current==='email-flood' ? `${count} / 4` : current==='rate-limit' ? `HTTP ${rows.at(-1).status}` : rows.map(r=>r.status).join(' ≠ ');
   if (current==='enumeration' && mode==='fixed') metric.textContent=rows.map(r=>r.status).join(' = ');
   const caption=document.createElement('p');caption.className='result-caption';
-  caption.textContent = current==='email-flood' ? 'رسائل أُنشئت من أصل 4 طلبات' : current==='rate-limit' ? 'نتيجة المحاولة الخامسة بعد تغيير الترويسة' : 'حالة الرد للحساب الموجود ثم غير الموجود';
+  caption.textContent = current==='email-flood' ? tr('رسائل أُنشئت من أصل 4 طلبات') : current==='rate-limit' ? tr('نتيجة المحاولة الخامسة بعد تغيير الترويسة') : tr('حالة الرد للحساب الموجود ثم غير الموجود');
   root.append(metric,caption);
   rows.forEach(r=>{ const row=document.createElement('div'); row.className='request-row';const label=document.createElement('span');label.textContent=r.label;const code=document.createElement('code');code.textContent=`HTTP ${r.status}`;row.append(label,code);root.append(row); });
-  const detail=document.createElement('details');const summary=document.createElement('summary');summary.textContent='شاهد الطلبات والاستجابات';const pre=document.createElement('pre');pre.dir='ltr';pre.textContent=JSON.stringify(rows,null,2);detail.append(summary,pre);root.append(detail);
+  const detail=document.createElement('details');const summary=document.createElement('summary');summary.textContent=tr('شاهد الطلبات والاستجابات');const pre=document.createElement('pre');pre.dir='ltr';pre.textContent=JSON.stringify(rows,null,2);detail.append(summary,pre);root.append(detail);
 }
 $('compare').onclick = async () => {
   if (busy) return;
@@ -156,7 +157,7 @@ $('compare').onclick = async () => {
   const results={};
   try {
     for (const mode of ['vulnerable','fixed']) {
-      $('live-status').textContent = `نختبر النسخة ${mode==='fixed'?'المُصلحة':'الضعيفة'}…`;
+      $('live-status').textContent = tr(`نختبر النسخة ${mode==='fixed'?'المُصلحة':'الضعيفة'}…`);
       await reset();
       const rows=[]; const n=current==='enumeration'?2:current==='rate-limit'?5:4;
       for (let i=0;i<n;i++) {
@@ -164,7 +165,7 @@ $('compare').onclick = async () => {
         const forwarded = current==='rate-limit'&&i===4?'192.0.2.1':'';
         const path=`/lab/${current}/${mode}`;
         const r=await post(path,email,forwarded);
-        rows.push({label:current==='enumeration'?(i===0?'حساب موجود':'حساب غير موجود'):`طلب ${i+1}${forwarded?' · ترويسة جديدة':''}`,method:'POST',path,email,forwarded,...r});
+        rows.push({label:current==='enumeration'?(i===0?tr('حساب موجود'):tr('حساب غير موجود')):tr(`طلب ${i+1}${forwarded?' · ترويسة جديدة':''}`),method:'POST',path,email,forwarded,...r});
       }
       const messages=await inbox();
       results[mode]={rows,count:messages.filter(m=>m.mode===mode).length};
@@ -173,14 +174,14 @@ $('compare').onclick = async () => {
     const a=results.vulnerable,b=results.fixed;
     const expected=current==='enumeration' ? a.rows[0].status===200&&a.rows[1].status===404&&b.rows.every(r=>r.status===202)&&JSON.stringify(b.rows[0].body)===JSON.stringify(b.rows[1].body) : current==='rate-limit' ? a.rows[3].status===429&&a.rows[4].status===401&&b.rows[3].status===429&&b.rows[4].status===429 : a.count===4&&b.count===1&&[...a.rows,...b.rows].every(r=>r.status===202);
     $('takeaway').replaceChildren();
-    const title=document.createElement('h3');title.textContent=expected?'شو أثبتت التجربة؟':'النتيجة اختلفت عن السيناريو المتوقع';
-    const body=document.createElement('p');body.textContent=expected?lessons[current].takeaway:'راجع تفاصيل الاستجابات. قد يكون هناك تداخل مع طلبات أخرى أو نسخة مختلفة من الخادم. لم تُسجّل التجربة كمكتملة.';
+    const title=document.createElement('h3');title.textContent=expected?tr('شو أثبتت التجربة؟'):tr('النتيجة اختلفت عن السيناريو المتوقع');
+    const body=document.createElement('p');body.textContent=expected?lessons[current].takeaway:tr('راجع تفاصيل الاستجابات. قد يكون هناك تداخل مع طلبات أخرى أو نسخة مختلفة من الخادم. لم تُسجّل التجربة كمكتملة.');
     $('takeaway').append(title,body);$('takeaway').hidden=false;
-    $('live-status').textContent=expected?'اكتملت المقارنة من استجابات الخادم الفعلية.':'المقارنة تحتاج مراجعة.';
+    $('live-status').textContent=expected?tr('اكتملت المقارنة من استجابات الخادم الفعلية.'):tr('المقارنة تحتاج مراجعة.');
     // Guided viewing does not complete a hands-on challenge.
     $('outbox').textContent=JSON.stringify(await inbox(),null,2);
   } catch(error) {
-    $('live-status').textContent=`تعذّر إكمال التجربة. تأكد أن python app.py يعمل، ثم أعد المحاولة. (${error.message})`;
+    $('live-status').textContent=tr(`تعذّر إكمال التجربة. تأكد أن python app.py يعمل، ثم أعد المحاولة. (${error.message})`);
   } finally {lock(false);}
 };
 $('manual').onsubmit = async event => {
@@ -188,9 +189,9 @@ $('manual').onsubmit = async event => {
   try {const r=await post(`/lab/${current}/${$('mode').value}`,$('email').value,$('forwarded').value);$('manual-response').textContent=`HTTP ${r.status}\n${JSON.stringify(r.body,null,2)}`;$('outbox').textContent=JSON.stringify(await inbox(),null,2);}
   catch(error){$('manual-response').textContent=error.message;}finally{lock(false);}
 };
-$('reset').onclick=async()=>{if(busy)return;lock(true);try{await reset();$('outbox').textContent='[]';$('manual-response').textContent='تم تصفير العدّادات والبريد.';}catch(error){$('manual-response').textContent=error.message;}finally{lock(false);}};
+$('reset').onclick=async()=>{if(busy)return;lock(true);try{await reset();$('outbox').textContent='[]';$('manual-response').textContent=tr('تم تصفير العدّادات والبريد.');}catch(error){$('manual-response').textContent=error.message;}finally{lock(false);}};
 $('refresh').onclick=async()=>{try{$('outbox').textContent=JSON.stringify(await inbox(),null,2);}catch(error){$('outbox').textContent=error.message;}};
-$('clear-progress').onclick=()=>{if(!confirm('مسح علامات إنجاز التدريب والتمارين؟ تبقى جميع الدروس مفتوحة.'))return;completed.clear();courseProgress.reset();saveProgress();route();};
+$('clear-progress').onclick=()=>{if(!confirm(tr('مسح علامات إنجاز التدريب والتمارين؟ تبقى جميع الدروس مفتوحة.')))return;completed.clear();courseProgress.reset();saveProgress();route();};
 for(const button of document.querySelectorAll('[data-tab]')){
   button.onclick=()=>tab(button.dataset.tab);
   button.onkeydown=event=>{if(!['ArrowRight','ArrowLeft'].includes(event.key))return;event.preventDefault();const buttons=[...document.querySelectorAll('[data-tab]')];const next=buttons[(buttons.indexOf(button)+(event.key==='ArrowLeft'?1:2))%3];tab(next.dataset.tab);next.focus();};

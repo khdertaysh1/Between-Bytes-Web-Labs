@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import time
 from urllib.parse import parse_qs, urlsplit
+from rooms import RoomSessions, ROOMS
 from advanced import exercise
 from browser_labs import initialize, authenticated, csrf_write, LabServer, Sidecar
 from training import access_lesson, preview_document, PREVIEW_CSP
@@ -82,10 +83,17 @@ class Labs:
 
 def handler_for(labs):
     class Handler(BaseHTTPRequestHandler):
+        def room_context(self):
+            return self.server.room_sessions.resolve(self.headers.get('Cookie'))
+
         def log_message(self, *args):
             pass
 
         def reply(self, status, data, mime="application/json; charset=utf-8", csp=None, headers=None):
+            context=self.room_context()
+            event=getattr(self,'room_event',None)
+            if context and event and isinstance(data,dict):
+                context.record(event['lesson'],event['mode'],status,data,event['details'])
             body = data if isinstance(data, bytes) else json.dumps(data).encode()
             self.send_response(status)
             self.send_header("Content-Type", mime)
@@ -105,27 +113,41 @@ def handler_for(labs):
             return self.headers.get("Host") == "127.0.0.1:" + str(self.server.server_port)
 
         def do_GET(self):
+            self.room_event=None
+            context=self.room_context()
+            state=context.labs if context else labs
             if not self.valid_host():
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             parsed = urlsplit(self.path)
+            if parsed.path == '/rooms/session':
+                try:
+                    key,room=self.server.room_sessions.create(self.headers.get('Cookie'))
+                    headers={'Set-Cookie':'bb_room='+key+'; HttpOnly; SameSite=Lax; Path=/'} if key else {}
+                    return self.reply(200,{'isolated_browser_state':True,'expiry_seconds':1800},headers=headers)
+                except ValueError as error:
+                    return self.reply(503,{'error':str(error)})
+            if parsed.path == '/rooms/status':
+                if not context:return self.reply(401,{'error':'Start a classroom session'})
+                return self.reply(200,context.report())
             if parsed.path == '/browser/session':
                 sidecar=self.server.sidecar
-                return self.reply(200, {'csrf_token':labs.csrf_token,'attack_origin':'http://127.0.0.1:'+str(sidecar.server_port)}, headers={'Set-Cookie':'bb_lab_session='+labs.browser_session+'; HttpOnly; SameSite=Lax; Path=/'})
+                return self.reply(200, {'csrf_token':state.csrf_token,'attack_origin':'http://127.0.0.1:'+str(sidecar.server_port)}, headers={'Set-Cookie':'bb_lab_session='+state.browser_session+'; HttpOnly; SameSite=Lax; Path=/'})
             if parsed.path == '/browser/state':
-                if not authenticated(labs,self.headers.get('Cookie')):
+                if not authenticated(state,self.headers.get('Cookie')):
                     return self.reply(401, {'error':'No synthetic session'})
-                return self.reply(200, {'notes':labs.browser_notes})
+                return self.reply(200, {'notes':state.browser_notes})
             if parsed.path.startswith('/browser/cors/'):
                 mode=parsed.path.split('/')[-1]
                 if mode not in {'vulnerable','fixed'}:
                     return self.reply(404, {'error':'Unknown mode'})
-                if not authenticated(labs,self.headers.get('Cookie')):
+                if not authenticated(state,self.headers.get('Cookie')):
                     return self.reply(401, {'error':'No synthetic session'})
                 origin=self.headers.get('Origin','')
                 expected='http://127.0.0.1:'+str(self.server.server_port)
                 headers={}
                 if origin and (mode=='vulnerable' or origin==expected):
                     headers={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Credentials':'true','Vary':'Origin'}
+                self.room_event={'lesson':'cors','mode':mode,'details':{'cross_origin':bool(origin and origin!=expected)}}
                 return self.reply(200, {'owner':'alice','private':'DEMO_PRIVATE_CORS_DATA','synthetic':True},headers=headers)
             if parsed.path.startswith("/preview/"):
                 try:
@@ -136,18 +158,22 @@ def handler_for(labs):
                     if parts[1] == "dom-xss" and "q" in query:
                         raise ValueError("DOM payload must stay in browser")
                     document = preview_document(parts[1], parts[2], query.get("q", [""])[0], query.get("token", [""])[0])
+                    if context:context.record(parts[1],parts[2],200,{}, {'browser_preview':True})
                     return self.reply(200, document.encode(), "text/html; charset=utf-8", PREVIEW_CSP)
                 except ValueError:
                     return self.reply(400, {"error": "Invalid preview"})
-            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
+            files = {"/": ("index.html", "text/html; charset=utf-8"), "/ui.js": ("ui.js", "text/javascript; charset=utf-8"), "/style.css": ("style.css", "text/css; charset=utf-8"), "/progression.js": ("progression.js", "text/javascript; charset=utf-8"), "/course.js": ("course.js", "text/javascript; charset=utf-8"), "/new_lessons.js": ("new_lessons.js", "text/javascript; charset=utf-8"), "/rooms_ui.js": ("rooms_ui.js", "text/javascript; charset=utf-8"), "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"), "/english.js": ("english.js", "text/javascript; charset=utf-8"), "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8"), "/challenges.js": ("challenges.js", "text/javascript; charset=utf-8")}
             if self.path in files:
                 name, mime = files[self.path]
                 return self.reply(200, Path(__file__).with_name(name).read_bytes(), mime)
             if self.path == "/outbox":
-                return self.reply(200, {"messages": list(labs.outbox)})
+                return self.reply(200, {"messages": list(state.outbox)})
             return self.reply(404, {"error": "Not found"})
 
         def do_POST(self):
+            self.room_event=None
+            context=self.room_context()
+            state=context.labs if context else labs
             if not self.valid_host():
                 return self.reply(403, {"error": "Invalid host"})
             origin = self.headers.get("Origin")
@@ -167,27 +193,37 @@ def handler_for(labs):
             except (ValueError, UnicodeError):
                 return self.reply(400, {"error": "Malformed request"})
             if csrf_route:
-                status,result=csrf_write(labs,self.path.split('/')[-1],origin,expected,self.headers.get('Cookie'),form.get('note',[''])[0],form.get('csrf_token',[''])[0])
+                self.room_event={'lesson':'csrf','mode':self.path.split('/')[-1],'details':{'cross_origin':origin!=expected}}
+                status,result=csrf_write(state,self.path.split('/')[-1],origin,expected,self.headers.get('Cookie'),form.get('note',[''])[0],form.get('csrf_token',[''])[0])
                 return self.reply(status,result)
+            if self.path == '/rooms/start':
+                lesson=form.get('lesson',[''])[0]
+                if not context:return self.reply(401,{'error':'Start a classroom session'})
+                if lesson not in ROOMS:return self.reply(400,{'error':'Unknown room'})
+                context.start(lesson)
+                return self.reply(200,{'room':lesson,'started':True})
             if self.path == "/reset":
-                labs.reset()
+                state.reset()
                 return self.reply(200, {"message": "Local lab state reset"})
             parts = self.path.strip("/").split("/")
             if len(parts) != 3 or parts[0] != "lab":
                 return self.reply(404, {"error": "Not found"})
+            self.room_event={'lesson':parts[1],'mode':parts[2],'details':{key:form.get(key,[''])[0] for key in ('email','resource','layer','value')}}
+            self.room_event['details']['forwarded']=self.headers.get('X-Forwarded-For','')
             if parts[1] in {'ssrf','open-redirect','api-keys','exposed-files'}:
                 status,result=exercise(parts[1],parts[2],form.get('value',[''])[0])
                 return self.reply(status,result)
             if parts[1] in {"idor", "edge403"}:
                 status, result = access_lesson(parts[1], parts[2], form)
                 return self.reply(status, result)
-            status, result = labs.run(parts[1], parts[2], form.get("email", [""])[0], self.client_address[0], self.headers.get("X-Forwarded-For", ""))
+            status, result = state.run(parts[1], parts[2], form.get("email", [""])[0], self.client_address[0], self.headers.get("X-Forwarded-For", ""))
             return self.reply(status, result)
     return Handler
 
 
 def make_server(port=8000):
     server = LabServer(("127.0.0.1", port), handler_for(Labs()))
+    server.room_sessions=RoomSessions(Labs)
     server.sidecar=Sidecar(server)
     server.timeout = 1
     return server
