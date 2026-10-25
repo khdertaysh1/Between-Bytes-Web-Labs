@@ -94,3 +94,9 @@ node tests/payment_status.cjs
 node tests/audit_edges.cjs
 node tests/payloads.cjs
 ```
+
+## Automated checks and review
+
+Updates are proposed on branches and PRs for owner review. The `Lab quality` workflow runs Python 3.10/3.13 checks, all browser groups and three regression-sensitivity experiments, then reports `quality-gate`. Dependencies/actions are pinned and CI has read-only repository permissions. Node remains development-only.
+
+**Owner activation required:** a workflow alone does not protect main. Branch protection must require `quality-gate` and PRs; the connected integration cannot administer this setting. See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact settings/REST body and the single-owner review limitation. [الشرح بالعربية](docs/quality.ar.md). Scheduled development tasks prepare PRs and do not merge them automatically.

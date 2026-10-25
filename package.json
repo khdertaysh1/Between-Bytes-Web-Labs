@@ -1,0 +1,9 @@
+{
+  "name": "between-bytes-web-labs-tests",
+  "private": true,
+  "version": "0.11.0",
+  "description": "Development-only browser tests; the app still runs with Python alone",
+  "engines": {"node": ">=22"},
+  "scripts": {"test": "python tools/quality.py browser"},
+  "devDependencies": {"playwright": "1.62.1"}
+}
