@@ -35,6 +35,10 @@ def response(academy,case,mode,result):
             payload={'error':{'code':code,'message':message},'data':{'order':data['order'],'outcome':'rejected',**({'operations':data['operations']} if 'operations' in data else {})}}
         else:payload={'data':data}
         headers['ETag']='"order100-r'+str(data['order']['revision'])+'"'
+    elif case.startswith(('upload-', 'traversal-', 'disclosure-', 'authentication-')):
+        payload = {'data': deepcopy(result['data'])}
+        if status >= 400:
+            payload['error'] = {'code': result.get('error_code', 'operation_rejected'), 'message': 'The requested resource or operation is not available under this policy.'}
     elif case.startswith('acl-'):
         if status>=400:payload={'error':{'code':'resource_not_found' if status==404 else 'forbidden','message':'Resource not found.' if status==404 else 'Your account does not have permission to perform this operation.'}}
         else:

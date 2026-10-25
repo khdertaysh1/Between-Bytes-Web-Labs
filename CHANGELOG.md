@@ -1,3 +1,10 @@
+# v0.12.0 · Resource and identity labs
+
+- Add four independent six-case rooms: uploads, path traversal, disclosure, recovery/sessions. Total: 13 rooms, 96 cases.
+- Preserve the bilingual design and manual fields, HTTP editor, request replay/diff and encoding tools.
+- Add virtual storage, path-resolution traces, deployment fixtures and identity ledgers with appropriate HTTP statuses and unchanged rejected state. No host file access, content execution or external transport.
+- Extend the existing all-case HTTP and browser checks to all 96 cases; add resource, lifecycle, input-bound, capacity and no-IO contracts. Exact room/count assertions now cover 13/96; no checks are removed or skipped.
+
 # v0.9.2 · Whole-project HTTP, state and browser audit
 
 - Add explicit HTTP/body/state verification for all 50 academy cases and all 13 foundation rooms, malformed-input coverage and browser edge regressions.

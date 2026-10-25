@@ -2,6 +2,7 @@
 from collections import defaultdict, deque
 from commerce import execute as checkout_execute, provider_signature
 from request_security import execute as request_execute, GROUPS as REQUEST_GROUPS
+from resource_labs import execute as resource_execute, GROUPS as RESOURCE_GROUPS
 import html
 import hashlib
 import ipaddress
@@ -13,6 +14,7 @@ import sqlite3
 from urllib.parse import unquote, urlsplit
 
 CATALOG = json.loads(Path(__file__).with_name('academy_catalog.json').read_text())
+CATALOG += json.loads(Path(__file__).with_name('resource_catalog.json').read_text())
 for row in CATALOG:
     if row['id']=='pay-webhook':row['normal']['signature']=provider_signature()
 CASES = {row['id']: row for row in CATALOG}
@@ -79,7 +81,9 @@ class Academy:
             raise ValueError('Missing required fields: '+', '.join(sorted(required-set(data))))
         state = self.states.setdefault((case, mode), {})
         fixed = mode == 'fixed'
-        if CASES[case]['group'] in REQUEST_GROUPS:
+        if CASES[case]['group'] in RESOURCE_GROUPS:
+            result = resource_execute(case, CASES[case]['group'], fixed, data, state)
+        elif CASES[case]['group'] in REQUEST_GROUPS:
             result = request_execute(case, CASES[case]['group'], fixed, data, state)
         elif case.startswith('pay-'):
             result = self.payment(case[4:], fixed, data, state)

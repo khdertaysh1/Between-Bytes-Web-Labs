@@ -1,0 +1,1206 @@
+[
+  {
+    "id": "upload-extension",
+    "group": "upload",
+    "title": {
+      "ar": "امتداد ملف نشط",
+      "en": "Active file extension"
+    },
+    "normal": {
+      "filename": "avatar.png",
+      "content_type": "image/png",
+      "content": "PNG:demo-avatar"
+    },
+    "attack": {
+      "filename": "avatar.php",
+      "content_type": "image/png",
+      "content": "PNG:demo-avatar"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "تخزين الملف باسم يحدده العميل يسمح بامتداد نشط.",
+      "en": "A client filename selects an active extension."
+    },
+    "fix": {
+      "ar": "اسمح بامتدادات محددة وولّد اسم التخزين على الخادم.",
+      "en": "Allow specific extensions and generate a server-side storage name."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. تخزين الملف باسم يحدده العميل يسمح بامتداد نشط.",
+        "en": "Northstar lets alice upload a profile image. A client filename selects an active extension."
+      },
+      "interpretation": {
+        "ar": "غيّر filename من avatar.png إلى avatar.php مع إبقاء المحتوى نفسه. في النسخة الضعيفة يظهر الاسم النشط في files؛ المُصلحة ترفضه بـ415. قبول الاسم يثبت تجاوز سياسة الامتداد فقط، ولا يثبت تنفيذ PHP.",
+        "en": "Change filename from avatar.png to avatar.php without changing content. The vulnerable files map records the active suffix; the fixed service returns 415. This proves an extension-policy failure, not PHP execution."
+      },
+      "bad_code": "save(body.filename, body.content)",
+      "fixed_code": "require(final_suffix(name) in allowed); store(random_id(), decoded_image)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "upload-double",
+    "group": "upload",
+    "title": {
+      "ar": "الامتداد المزدوج",
+      "en": "Double extension"
+    },
+    "normal": {
+      "filename": "portrait.png",
+      "content_type": "image/png",
+      "content": "PNG:portrait"
+    },
+    "attack": {
+      "filename": "portrait.png.php",
+      "content_type": "image/png",
+      "content": "PNG:portrait"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "البحث عن .png داخل الاسم لا يتحقق من الامتداد الأخير.",
+      "en": "A substring check does not validate the final extension."
+    },
+    "fix": {
+      "ar": "افحص الامتداد النهائي بعد توحيد الاسم، ولا تستخدم مطابقة جزئية.",
+      "en": "Validate the final normalized suffix rather than a substring."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. البحث عن .png داخل الاسم لا يتحقق من الامتداد الأخير.",
+        "en": "Northstar lets alice upload a profile image. A substring check does not validate the final extension."
+      },
+      "interpretation": {
+        "ar": "جرّب portrait.png.php. البحث عن .png داخل الاسم يمرر الملف في الضعيفة، لكن الامتداد النهائي هو php. توقع 415 من المُصلحة، وقارن قائمة files قبل الطلب وبعده.",
+        "en": "Try portrait.png.php. A substring test finds .png, but the final suffix is php. Expect fixed HTTP 415 and an unchanged files map."
+      },
+      "bad_code": "if \".png\" in name: save(name, content)",
+      "fixed_code": "require(final_suffix(normalize(name)) == \"png\")",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "upload-mime",
+    "group": "upload",
+    "title": {
+      "ar": "نوع المحتوى المصرّح",
+      "en": "Declared MIME type"
+    },
+    "normal": {
+      "filename": "photo.png",
+      "content_type": "image/png",
+      "content": "PNG:photo"
+    },
+    "attack": {
+      "filename": "photo.png",
+      "content_type": "image/png",
+      "content": "HTML:demo-document"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "الخادم يثق في Content-Type ويتجاهل بنية المحتوى.",
+      "en": "The service trusts Content-Type without inspecting content."
+    },
+    "fix": {
+      "ar": "تحقق من بنية الصورة بواسطة محلل موثوق وأعد ترميزها.",
+      "en": "Decode with a trusted image parser and re-encode."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. الخادم يثق في Content-Type ويتجاهل بنية المحتوى.",
+        "en": "Northstar lets alice upload a profile image. The service trusts Content-Type without inspecting content."
+      },
+      "interpretation": {
+        "ar": "أبقِ الاسم photo.png والنوع image/png، واستبدل PNG:photo بـHTML:demo-document. الضعيفة تثق في الوصف المرسل؛ المُصلحة ترد 415. بادئتا PNG: وHTML: عينات تنسيق تعليمية، وليستا محللاً لصور حقيقية.",
+        "en": "Keep photo.png and image/png, but replace PNG:photo with HTML:demo-document. The vulnerable route trusts the declaration; the fixed route returns 415. PNG:/HTML: are format fixtures, not real image decoding."
+      },
+      "bad_code": "if content_type == \"image/png\": store(content)",
+      "fixed_code": "image = trusted_decoder(bytes); store(reencode(image))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "upload-path",
+    "group": "upload",
+    "title": {
+      "ar": "مسار اسم الملف",
+      "en": "Upload filename traversal"
+    },
+    "normal": {
+      "filename": "avatar.png",
+      "content_type": "image/png",
+      "content": "PNG:avatar"
+    },
+    "attack": {
+      "filename": "../settings.png",
+      "content_type": "image/png",
+      "content": "PNG:avatar"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "دمج اسم المستخدم بمجلد الرفع يسمح بالخروج منه.",
+      "en": "Joining a client filename permits escaping the upload directory."
+    },
+    "fix": {
+      "ar": "ارفض الفواصل والمسارات واستخدم معرفاً مولداً للتخزين.",
+      "en": "Reject path separators and use generated storage identifiers."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. دمج اسم المستخدم بمجلد الرفع يسمح بالخروج منه.",
+        "en": "Northstar lets alice upload a profile image. Joining a client filename permits escaping the upload directory."
+      },
+      "interpretation": {
+        "ar": "أرسل ../settings.png ثم افحص resolved_path: الضعيفة تحسب /settings.png خارج /uploads. المُصلحة ترد 403 قبل التخزين. لا يُكتب هذا المسار على جهازك؛ الأثر محفوظ داخل خريطة افتراضية.",
+        "en": "Submit ../settings.png and inspect resolved_path: the vulnerable model resolves /settings.png outside /uploads. Fixed HTTP 403 precedes storage. No host path is written."
+      },
+      "bad_code": "destination = join(upload_root, client_filename)",
+      "fixed_code": "require(basename_only(name)); destination = generated_storage_id()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "upload-overwrite",
+    "group": "upload",
+    "title": {
+      "ar": "استبدال ملف مستخدم آخر",
+      "en": "Cross-user overwrite"
+    },
+    "normal": {
+      "filename": "alice.png",
+      "content_type": "image/png",
+      "content": "PNG:new-alice"
+    },
+    "attack": {
+      "filename": "bob.png",
+      "content_type": "image/png",
+      "content": "PNG:new-alice"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "مساحة أسماء مشتركة تسمح باستبدال صورة حساب آخر.",
+      "en": "A shared namespace permits replacing another user’s avatar."
+    },
+    "fix": {
+      "ar": "اربط كل ملف بمالك الجلسة وارفض الاستبدال غير المصرح.",
+      "en": "Bind storage records to the session owner and authorize replacements."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. مساحة أسماء مشتركة تسمح باستبدال صورة حساب آخر.",
+        "en": "Northstar lets alice upload a profile image. A shared namespace permits replacing another user’s avatar."
+      },
+      "interpretation": {
+        "ar": "يوجد bob.png مسبقاً ومالكه bob. تغيير الاسم من alice.png إلى bob.png يستبدل محتواه في الضعيفة. المُصلحة ترد 403 وتبقي PNG:bob-original كما هو؛ قارن المالك والمحتوى، لا رمز النجاح وحده.",
+        "en": "bob.png already belongs to Bob. Changing alice.png to bob.png overwrites Bob’s virtual content in the vulnerable service. Fixed HTTP 403 preserves PNG:bob-original."
+      },
+      "bad_code": "files[name] = uploaded_content",
+      "fixed_code": "require(files[name].owner == session.actor); update_owned_file()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "upload-svg",
+    "group": "upload",
+    "title": {
+      "ar": "محتوى SVG نشط",
+      "en": "Active SVG policy"
+    },
+    "normal": {
+      "filename": "portrait.svg",
+      "content_type": "image/svg+xml",
+      "content": "<svg><circle r=\"4\"/></svg>"
+    },
+    "attack": {
+      "filename": "portrait.svg",
+      "content_type": "image/svg+xml",
+      "content": "<svg><script>/* demo marker */</script></svg>"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "السماح بمحتوى SVG نشط في أصل التطبيق قد ينقل خطأ رفع إلى XSS.",
+      "en": "Serving active SVG on the application origin can connect upload flaws to XSS."
+    },
+    "fix": {
+      "ar": "استخدم محللاً آمناً وتعقيماً موثوقاً أو ارفض SVG؛ قدّمه من أصل معزول.",
+      "en": "Use a safe parser and robust sanitizer or reject SVG; serve from an isolated origin."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في خدمة صور Northstar يرفع الحساب alice صورة شخصية. السماح بمحتوى SVG نشط في أصل التطبيق قد ينقل خطأ رفع إلى XSS.",
+        "en": "Northstar lets alice upload a profile image. Serving active SVG on the application origin can connect upload flaws to XSS."
+      },
+      "interpretation": {
+        "ar": "قارن SVG الذي يرسم دائرة مع SVG الذي يحتوي script. الضعيفة تقبل الاثنين؛ المُصلحة تقبل العينة السليمة وترفض النشطة بـ415. execution_performed يبقى false: المختبر يختبر سياسة التخزين ولا يشغّل SVG. رفض وسوم قليلة ليس تعقيماً إنتاجياً كافياً.",
+        "en": "Compare the circle SVG with an SVG containing script. Vulnerable storage accepts both; fixed accepts the safe fixture and rejects the active one with 415. execution_performed stays false. A short tag denylist is not a production sanitizer."
+      },
+      "bad_code": "if mime == \"image/svg+xml\": save(svg)",
+      "fixed_code": "reject_svg_or_use_hardened_parser_and_sanitizer(); serve_isolated_origin()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-relative",
+    "group": "traversal",
+    "title": {
+      "ar": "الخروج النسبي من المجلد",
+      "en": "Relative traversal"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "../private/billing.csv"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "تُحل ../private/billing.csv إلى /private/billing.csv. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "../private/billing.csv resolves to /private/billing.csv. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-encoded",
+    "group": "traversal",
+    "title": {
+      "ar": "فك ترميز المسار",
+      "en": "URL-decoded traversal"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "%2e%2e%2fprivate%2fbilling.csv"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "تفك %2e%2e%2f إلى ../ قبل القراءة؛ فحص النص قبل الفك يفوّت الانتقال. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "%2e%2e%2f decodes to ../ before reading; checking raw text misses traversal. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-double",
+    "group": "traversal",
+    "title": {
+      "ar": "فك الترميز مرتين",
+      "en": "Double decoding"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "%252e%252e%252fprivate%252fbilling.csv"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "تفك %252e مرتين حتى تصبح نقطة. تابع خطوتي التحويل في decoded ثم resolved. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "%252e becomes a dot after two decoding passes. Compare decoded and resolved. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-backslash",
+    "group": "traversal",
+    "title": {
+      "ar": "فواصل مسار بديلة",
+      "en": "Backslash separators"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "..\\private\\billing.csv"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "تتحول الشرطة العكسية إلى فاصل في طبقة التخزين؛ قارن الاسم الخام بالمسار الموحّد. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "The storage layer treats backslashes as separators; compare raw and normalized paths. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-absolute",
+    "group": "traversal",
+    "title": {
+      "ar": "مسار مطلق",
+      "en": "Absolute path"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "/private/billing.csv"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "المسار /private/billing.csv المطلق يلغي بادئة المجلد عند الدمج. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "The absolute /private/billing.csv path replaces the base during joining. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "traversal-prefix",
+    "group": "traversal",
+    "title": {
+      "ar": "خداع بادئة المجلد",
+      "en": "Directory prefix confusion"
+    },
+    "normal": {
+      "path": "guide.txt"
+    },
+    "attack": {
+      "path": "../public-backup/keys.txt"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "التحقق من النص الخام يختلف عن المسار الذي تستخدمه طبقة القراءة.",
+      "en": "Raw input validation differs from the path used by the reader."
+    },
+    "fix": {
+      "ar": "وحّد المسار مرة واحدة، ارفض المسارات المطلقة، وتحقق من الاحتواء حسب أجزاء المسار.",
+      "en": "Canonicalize once, reject absolute paths and enforce containment by path components."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة تنزيل المستندات تعرض guide.txt من /public. غيّر path لتفحص هل يبقى المورد داخل هذا المجلد بعد فك الترميز وتوحيد الفواصل. هذه شجرة ملفات افتراضية وليست ملفات جهازك.",
+        "en": "The document service serves guide.txt from /public. Edit path and inspect whether resolution remains under that directory after decoding and separator normalization. The tree is virtual."
+      },
+      "interpretation": {
+        "ar": "المجلد /public-backup يبدأ بنص /public لكنه ليس داخله؛ مطابقة البادئة وحدها لا تكفي. الضعيفة تعيد محتوى خاصاً، والمُصلحة 403 مع content=null. جرّب guide.txt كضابط سليم وabsent.txt كملف مفقود يجب أن يعيد 404. لا يُقرأ أي ملف من نظام التشغيل.",
+        "en": "/public-backup starts with /public but is not a child; a string-prefix test is insufficient. Vulnerable returns private fixture content; fixed returns 403 with content=null. guide.txt is the valid control and absent.txt must return 404. No operating-system files are read."
+      },
+      "bad_code": "read_virtual(join(base, decode(user_path)))",
+      "fixed_code": "resolved = canonicalize_once(path); require(component_containment(base, resolved))",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-env",
+    "group": "disclosure",
+    "title": {
+      "ar": "ملف البيئة المكشوف",
+      "en": "Exposed environment file"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/.env"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "قارن /help.json مع /.env. وجود DB_PASSWORD في استجابة 200 هو الدليل داخل المختبر؛ المُصلحة تعيد 404 ولا تعيد المحتوى. DEMO_INERT_PASSWORD ليس سراً حقيقياً.",
+        "en": "Compare /help.json with /.env. A 200 body containing DB_PASSWORD establishes the modeled disclosure; fixed returns 404 without the content. DEMO_INERT_PASSWORD is inert."
+      },
+      "bad_code": "serve_any_deployment_file(path)",
+      "fixed_code": "exclude_dotfiles_from_build(); publish_allowlist()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-git",
+    "group": "disclosure",
+    "title": {
+      "ar": "بيانات مستودع Git",
+      "en": "Exposed Git metadata"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/.git/config"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "اطلب /.git/config واقرأ عنوان المستودع الداخلي. هذه بيانات وصفية مكشوفة؛ لا يعني وجودها أن ملفات المصدر كلها قابلة للاستعادة. المُصلحة تعيد 404.",
+        "en": "Read the internal repository URL at /.git/config. Metadata disclosure alone does not establish complete source recovery. Fixed returns 404."
+      },
+      "bad_code": "static_root = project_root",
+      "fixed_code": "static_root = clean_public_build; deny_vcs_metadata()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-backup",
+    "group": "disclosure",
+    "title": {
+      "ar": "نسخة إعدادات احتياطية",
+      "en": "Configuration backup"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/config.json.bak"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "اطلب /config.json.bak. تغيير لاحقة الإعداد إلى .bak لا يجعله آمناً للنشر. الضعيفة تعيد رمز خدمة وهمياً؛ المُصلحة 404 بلا محتوى.",
+        "en": "Request /config.json.bak. A .bak suffix does not make configuration safe to publish. Vulnerable returns an inert service token; fixed returns 404."
+      },
+      "bad_code": "copy_project_recursively_to_public()",
+      "fixed_code": "build_public_assets_only(); exclude_backups()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-listing",
+    "group": "disclosure",
+    "title": {
+      "ar": "فهرسة مجلد داخلي",
+      "en": "Directory listing"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/internal/"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "افحص entries في /internal/. الأسماء تكشف بنية مجلد داخلي لكنها لا تثبت السماح بتنزيل كل عنصر. المُصلحة تعيد 404 بدلاً من قائمة الملفات.",
+        "en": "Inspect /internal/ entries. Filenames disclose an internal directory structure, not automatic read access to every listed item. Fixed returns 404."
+      },
+      "bad_code": "return list_directory(path)",
+      "fixed_code": "disable_autoindex(); authorize_resource_access()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-trace",
+    "group": "disclosure",
+    "title": {
+      "ar": "تفاصيل خطأ داخلية",
+      "en": "Verbose error trace"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/debug/error"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "استجابة /debug/error تكشف مسار المصدر وسطر الاستعلام. هذه تفاصيل تشخيصية، وليست إثبات SQL Injection. المُصلحة تخفي المسار العام بـ404؛ في نظام حقيقي تُحفظ التفاصيل في سجل خادم مقيد.",
+        "en": "/debug/error exposes a source path and query text. This is diagnostic disclosure, not proof of SQL injection. Fixed hides the public route with 404; production details belong in restricted server logs."
+      },
+      "bad_code": "return exception.stack_and_query",
+      "fixed_code": "log_restricted(exception); return_generic_error()",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "disclosure-apikey",
+    "group": "disclosure",
+    "title": {
+      "ar": "مفتاح سري في إعدادات العميل",
+      "en": "Secret in client configuration"
+    },
+    "normal": {
+      "path": "/help.json"
+    },
+    "attack": {
+      "path": "/client-config.json"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حزمة النشر أو مسار التشخيص ينشر بيانات لا يحتاجها العميل.",
+      "en": "The deployment bundle or diagnostic route publishes unnecessary internal data."
+    },
+    "fix": {
+      "ar": "استبعد الملفات الداخلية من النشر، امنع مسارات التشخيص، وانقل الأسرار للخادم؛ دوّر أي سر حقيقي تسرب.",
+      "en": "Exclude internal files, restrict diagnostics, keep secrets server-side and rotate any real exposed secret."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت تراجع ما تنشره خدمة Northstar دون تسجيل دخول. المورد العام /help.json متاح للجميع. جرّب المورد المحدد وميّز بين معلومة عامة وتسريب بيانات داخلية. المفاتيح هنا نصوص DEMO غير صالحة لأي خدمة.",
+        "en": "Review Northstar’s public deployment. /help.json is intentionally public. Request the case-specific resource and distinguish public metadata from internal disclosure. Every key is an inert DEMO string."
+      },
+      "interpretation": {
+        "ar": "قارن جسمي /client-config.json: الضعيفة تتضمن server_api_key، والمُصلحة تبقي public_api_base فقط وتعيد 200. نجاح الإصلاح هنا إزالة الحقل السري، وليس تغيير الرمز إلى خطأ. المفاتيح العامة ليست تلقائياً ثغرات.",
+        "en": "Compare /client-config.json bodies. Vulnerable contains server_api_key; fixed keeps public_api_base and still returns 200. The fix removes secret data rather than rejecting public configuration. Public keys are not automatically vulnerabilities."
+      },
+      "bad_code": "client_config = all_server_settings",
+      "fixed_code": "client_config = {\"public_api_base\": \"/api\"}",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-reset-binding",
+    "group": "authentication",
+    "title": {
+      "ar": "ربط رمز الاستعادة بالحساب",
+      "en": "Reset token account binding"
+    },
+    "normal": {
+      "account": "alice",
+      "token": "reset-alice",
+      "password": "NewDemoPassword!"
+    },
+    "attack": {
+      "account": "bob",
+      "token": "reset-alice",
+      "password": "NewDemoPassword!"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "رمز استعادة alice صالح لكنه لا يمنح إذناً لتغيير حساب bob.",
+      "en": "Alice’s valid reset token must not authorize a password change for Bob."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. رمز استعادة alice صالح لكنه لا يمنح إذناً لتغيير حساب bob.",
+        "en": "Northstar maintains synthetic token and session ledgers. Alice’s valid reset token must not authorize a password change for Bob."
+      },
+      "interpretation": {
+        "ar": "رمز استعادة alice صالح لكنه لا يمنح إذناً لتغيير حساب bob. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 401 دون تعديل سجل الحسابات. قارن revision للحساب المستهدف؛ يرتفع فقط بعد قبول تغيير كلمة السر. الرموز المستعملة أو المنتهية مُسجلة مسبقاً في الخادم؛ يمكنك أيضاً إعادة الطلب السليم بعد نجاحه لتلاحظ استهلاك الرمز. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "Alice’s valid reset token must not authorize a password change for Bob. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 401 without changing the account ledger. Inspect the target account revision. Successful resets consume the token; replay the normal input to observe single use. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "token_exists(token)",
+      "fixed_code": "require(token.owner == target_account)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-reset-replay",
+    "group": "authentication",
+    "title": {
+      "ar": "إعادة استخدام رمز الاستعادة",
+      "en": "Reset token replay"
+    },
+    "normal": {
+      "token": "reset-fresh"
+    },
+    "attack": {
+      "token": "reset-used"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "حالة الطلب السابقة محفوظة في سجل الرموز: reset-used مستهلك مسبقاً.",
+      "en": "The token ledger already marks reset-used as consumed."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. حالة الطلب السابقة محفوظة في سجل الرموز: reset-used مستهلك مسبقاً.",
+        "en": "Northstar maintains synthetic token and session ledgers. The token ledger already marks reset-used as consumed."
+      },
+      "interpretation": {
+        "ar": "حالة الطلب السابقة محفوظة في سجل الرموز: reset-used مستهلك مسبقاً. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 401 دون تعديل سجل الحسابات. قارن revision للحساب المستهدف؛ يرتفع فقط بعد قبول تغيير كلمة السر. الرموز المستعملة أو المنتهية مُسجلة مسبقاً في الخادم؛ يمكنك أيضاً إعادة الطلب السليم بعد نجاحه لتلاحظ استهلاك الرمز. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "The token ledger already marks reset-used as consumed. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 401 without changing the account ledger. Inspect the target account revision. Successful resets consume the token; replay the normal input to observe single use. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "token_signature_valid(token)",
+      "fixed_code": "require(not token.consumed); consume_atomically(token)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-reset-expiry",
+    "group": "authentication",
+    "title": {
+      "ar": "صلاحية رمز الاستعادة",
+      "en": "Reset token expiry"
+    },
+    "normal": {
+      "token": "reset-fresh"
+    },
+    "attack": {
+      "token": "reset-expired"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "ساعة الخادم وسجل الإصدار يحددان انتهاء الرمز؛ المتصفح لا يقرر صلاحيته.",
+      "en": "The server clock and issuance ledger determine token expiry."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. ساعة الخادم وسجل الإصدار يحددان انتهاء الرمز؛ المتصفح لا يقرر صلاحيته.",
+        "en": "Northstar maintains synthetic token and session ledgers. The server clock and issuance ledger determine token expiry."
+      },
+      "interpretation": {
+        "ar": "ساعة الخادم وسجل الإصدار يحددان انتهاء الرمز؛ المتصفح لا يقرر صلاحيته. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 401 دون تعديل سجل الحسابات. قارن revision للحساب المستهدف؛ يرتفع فقط بعد قبول تغيير كلمة السر. الرموز المستعملة أو المنتهية مُسجلة مسبقاً في الخادم؛ يمكنك أيضاً إعادة الطلب السليم بعد نجاحه لتلاحظ استهلاك الرمز. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "The server clock and issuance ledger determine token expiry. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 401 without changing the account ledger. Inspect the target account revision. Successful resets consume the token; replay the normal input to observe single use. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "token_exists(token)",
+      "fixed_code": "require(now < token.expires_at)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-logout",
+    "group": "authentication",
+    "title": {
+      "ar": "إبطال الجلسة بعد الخروج",
+      "en": "Session revocation after logout"
+    },
+    "normal": {
+      "session": "session-active"
+    },
+    "attack": {
+      "session": "session-logged-out"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "افحص مورداً خاصاً بجلسة فعالة ثم بجلسة سُجل خروجها مسبقاً.",
+      "en": "Read a private resource with an active session and a previously logged-out session."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. افحص مورداً خاصاً بجلسة فعالة ثم بجلسة سُجل خروجها مسبقاً.",
+        "en": "Northstar maintains synthetic token and session ledgers. Read a private resource with an active session and a previously logged-out session."
+      },
+      "interpretation": {
+        "ar": "افحص مورداً خاصاً بجلسة فعالة ثم بجلسة سُجل خروجها مسبقاً. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 401 دون تعديل سجل الحسابات. راقب authorized ومحتوى المورد الخاص؛ صلاحية الجلسة تُقرأ من سجل الخادم ولا تأتي من حقل يرسله العميل. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "Read a private resource with an active session and a previously logged-out session. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 401 without changing the account ledger. Inspect authorized and private response content. Session validity comes from the server ledger, not client assertions. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "session_signature_valid(session)",
+      "fixed_code": "require(session.active and not session.revoked)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-mfa",
+    "group": "authentication",
+    "title": {
+      "ar": "إكمال التحقق المتعدد",
+      "en": "MFA completion enforcement"
+    },
+    "normal": {
+      "session": "session-mfa-complete"
+    },
+    "attack": {
+      "session": "session-password-only"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "نجاح كلمة السر وحده لا يمنح جلسة الحساب الكاملة عندما يكون MFA مفعلاً.",
+      "en": "Passing the password step alone must not grant the full session when MFA is required."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. نجاح كلمة السر وحده لا يمنح جلسة الحساب الكاملة عندما يكون MFA مفعلاً.",
+        "en": "Northstar maintains synthetic token and session ledgers. Passing the password step alone must not grant the full session when MFA is required."
+      },
+      "interpretation": {
+        "ar": "نجاح كلمة السر وحده لا يمنح جلسة الحساب الكاملة عندما يكون MFA مفعلاً. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 403 دون تعديل سجل الحسابات. راقب authorized ومحتوى المورد الخاص؛ صلاحية الجلسة تُقرأ من سجل الخادم ولا تأتي من حقل يرسله العميل. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "Passing the password step alone must not grant the full session when MFA is required. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 403 without changing the account ledger. Inspect authorized and private response content. Session validity comes from the server ledger, not client assertions. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "password_step_passed(session)",
+      "fixed_code": "require(session.mfa_completed)",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  },
+  {
+    "id": "authentication-purpose",
+    "group": "authentication",
+    "title": {
+      "ar": "فصل أغراض الرموز",
+      "en": "Token purpose separation"
+    },
+    "normal": {
+      "token": "reset-fresh"
+    },
+    "attack": {
+      "token": "verify-email-alice"
+    },
+    "level": "intermediate",
+    "cause": {
+      "ar": "رمز تأكيد البريد ليس رمز استعادة، حتى إن كان مرتبطاً بالحساب نفسه.",
+      "en": "An email-verification token is not a reset token even when it belongs to the same account."
+    },
+    "fix": {
+      "ar": "تحقق على الخادم من المالك والغرض والصلاحية وحالة الاستهلاك أو الإبطال قبل منح الإذن.",
+      "en": "Check owner, purpose, expiry and consumption or revocation server-side before authorization."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في حسابات Northstar توجد سجلات جلسات ورموز مختبرية ثابتة. رمز تأكيد البريد ليس رمز استعادة، حتى إن كان مرتبطاً بالحساب نفسه.",
+        "en": "Northstar maintains synthetic token and session ledgers. An email-verification token is not a reset token even when it belongs to the same account."
+      },
+      "interpretation": {
+        "ar": "رمز تأكيد البريد ليس رمز استعادة، حتى إن كان مرتبطاً بالحساب نفسه. أرسل الطلب السليم ثم المعدّل: الضعيفة تمنح الإذن، والمُصلحة تعيد 401 دون تعديل سجل الحسابات. قارن revision للحساب المستهدف؛ يرتفع فقط بعد قبول تغيير كلمة السر. الرموز المستعملة أو المنتهية مُسجلة مسبقاً في الخادم؛ يمكنك أيضاً إعادة الطلب السليم بعد نجاحه لتلاحظ استهلاك الرمز. لا توجد رسائل بريد أو حسابات حقيقية في التجربة.",
+        "en": "An email-verification token is not a reset token even when it belongs to the same account. Run the valid control and then the modified request: vulnerable grants authorization; fixed returns 401 without changing the account ledger. Inspect the target account revision. Successful resets consume the token; replay the normal input to observe single use. These are synthetic accounts with no email or real credential changes."
+      },
+      "bad_code": "valid_token_for_user(token)",
+      "fixed_code": "require(token.purpose == \"password_reset\")",
+      "steps": [
+        {
+          "ar": "نفّذ الطلب السليم في النسخة المُصلحة وسجّل المورد والنتيجة.",
+          "en": "Run the legitimate fixed control and inspect the resource."
+        },
+        {
+          "ar": "عدّل الحقل الذي يعبر حد الثقة، ثم نفّذ الطلب في النسخة الضعيفة.",
+          "en": "Edit the trust-boundary field and send it to the vulnerable service."
+        },
+        {
+          "ar": "أعد الطلب نفسه في النسخة المُصلحة وقارن الرمز والبيانات والأثر.",
+          "en": "Replay the same input against the fixed service and compare status, data and effect."
+        }
+      ]
+    }
+  }
+]

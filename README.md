@@ -1,8 +1,8 @@
-# Between Bytes Web Labs · 0.11.0
+# Between Bytes Web Labs · 0.12.0
 
 مختبرات لتعلّم ثغرات تطبيقات الويب بالعربية والإنكليزية. اقرأ كيف تعمل الميزة، عدّل الطلب، افحص الأثر، ثم قارن النسخة الضعيفة بالمُصلحة. جميع الحالات مفتوحة، بلا نقاط أو شروط انتقال.
 
-واجهة واحدة تجمع **9 مختبرات و72 حالة**. أُزيلت الواجهة القديمة بالكامل؛ تعيد الروابط القديمة المدعومة فتح الحالة المناسبة في الواجهة الحالية.
+واجهة واحدة تجمع **13 مختبراً و96 حالة**. أُزيلت الواجهة القديمة بالكامل؛ تعيد الروابط القديمة المدعومة فتح الحالة المناسبة في الواجهة الحالية.
 
 | المختبر / Lab | الحالات / Cases |
 |---|---:|
@@ -15,12 +15,18 @@
 | CSRF | 6 |
 | CORS | 6 |
 | Open Redirect | 6 |
+| رفع الملفات / File uploads | 6 |
+| تجاوز المسارات / Path traversal | 6 |
+| كشف المعلومات / Information disclosure | 6 |
+| الاستعادة والجلسات / Recovery and sessions | 6 |
 
 SSRF وCSRF وCORS وOpen Redirect **مختبرات مستقلة**؛ لكل منها قصص وطلبات سليمة وأمثلة مخالفة وتفسير نتائج وإصلاحات. [الدليل العربي](docs/academy.ar.md) · [English guide](docs/academy.en.md).
 
+[شرح المختبرات الجديدة وحدودها](docs/resource-labs.ar.md) · [New lab guide](docs/resource-labs.en.md).
+
 ## مساحة العمل اليدوي الجديدة
 
-داخل **كل حالة من الحالات الـ72**، افتح «مساحة العمل اليدوي». الشكل والشرح السابقان محفوظان، وأضيفت تبويبات:
+داخل **كل حالة من الحالات الـ96**، افتح «مساحة العمل اليدوي». الشكل والشرح السابقان محفوظان، وأضيفت تبويبات:
 
 - **التطبيق:** عدّل الحقول وأنواعها، أرسلها أو احذفها، وجرّب الطلب بنفسك.
 - **الطلبات:** راجع طلبات POST المرسلة من المحرر، حمّل طلباً سابقاً، أعد إرساله، أو حدد طلبين لمقارنة المدخلات والاستجابات. الإعادة قد تغيّر حالة الجولة.
@@ -42,7 +48,7 @@ cd Between-Bytes-Web-Labs
 python app.py --port 8002
 ```
 
-افتح **http://127.0.0.1:8002/**. ستجد رقم الإصدار **0.11.0** أعلى الصفحة.
+افتح **http://127.0.0.1:8002/**. ستجد رقم الإصدار **0.12.0** أعلى الصفحة.
 
 للتحديث، أوقف الخادم بـ **Ctrl+C** ثم نفّذ داخل مجلد المستودع:
 
@@ -73,7 +79,7 @@ This is a local training application, not a website scanner. The server binds to
 - Companion browser practice adds actual CSRF requests for all six CSRF cases and real CORS origin-reflection read/block behavior. It uses separate scoped HttpOnly synthetic sessions and a learner-authored page on another loopback port. The ports are same-site; this does not demonstrate a SameSite bypass. Browser evidence and policy-model marks remain separate.
 - CORS can correctly return HTTP 200 while denying cross-origin readability. CSRF rejection uses 403, 405 or 415 depending on token/origin, method or content type. A successful request is not automatically a security finding.
 
-The previous foundation UI and its static assets have been removed. Legacy backend endpoints remain for compatibility and regression coverage; they do not expose the old interface. The [current verification report](docs/audit-0.11.0.md) records this release. The [0.9.2 audit](docs/audit-0.9.2.md) describes that historical release, not the current catalog.
+The previous foundation UI and its static assets have been removed. Legacy backend endpoints remain for compatibility and regression coverage; they do not expose the old interface. The [0.11.0 verification report](docs/audit-0.11.0.md) records the previous release. The [0.9.2 audit](docs/audit-0.9.2.md) describes that historical release, not the current catalog.
 
 ## Validation
 

@@ -148,13 +148,13 @@ def handler_for(labs):
             if studio_handle(self,context,parsed,'GET'):return
             if parsed.path in {'/studio-target.js','/studio-target.css'}:
                 return self.reply(200,(TARGET_JS if parsed.path.endswith('.js') else TARGET_CSS).encode(),'text/javascript; charset=utf-8' if parsed.path.endswith('.js') else 'text/css; charset=utf-8')
-            get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
+            get_api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect|upload|traversal|disclosure|authentication)/([a-z0-9-]+)/(vulnerable|fixed)',parsed.path)
             if get_api:
                 group,case,mode=get_api.groups()
                 if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.11.0','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.12.0','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
@@ -252,7 +252,7 @@ def handler_for(labs):
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
             if request_path in {'/academy/catalog','/academy/evidence','/academy/resource'} or request_path.startswith('/academy/preview/'):
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use GET for this resource'}},headers={'Allow':'GET'})
-            api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
+            api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect|upload|traversal|disclosure|authentication)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if not 0 < size <= 4096:

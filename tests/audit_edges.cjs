@@ -1,7 +1,7 @@
 // Browser regressions found during the whole-project audit.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
 (async()=>{
- const b=await chromium.launch({headless:true,executablePath:process.env.BB_BROWSER_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});const p=await b.newPage();let errors=[];p.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:8000';await p.goto(base);await p.waitForFunction(()=>document.querySelectorAll('.lab-card').length===9);await p.locator('#language').click();
+ const b=await chromium.launch({headless:true,executablePath:process.env.BB_BROWSER_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});const p=await b.newPage();let errors=[];p.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:8000';await p.goto(base);await p.waitForFunction(()=>document.querySelectorAll('.lab-card').length===13);await p.locator('#language').click();
  await p.goto(base+'/academy#/payment/pay-price');await p.waitForFunction(()=>document.getElementById('room-meta').textContent.endsWith('pay-price'));await p.locator('#sample').click();
  let release;const gate=new Promise(resolve=>release=resolve);const url='**/academy/api/payment/pay-price/vulnerable';await p.route(url,async route=>{await gate;await route.continue();});await p.locator('#send').click();
  for(const id of ['mode','input','reset','language','sample','normal'])assert.equal(await p.locator('#'+id).isDisabled(),true,id+' not locked during request');release();await p.waitForFunction(()=>!document.getElementById('send').disabled);await p.unroute(url);assert.ok((await p.locator('#http-status').innerText()).includes('vulnerable'));

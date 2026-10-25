@@ -48,8 +48,8 @@ class DomainTests(unittest.TestCase):
         self.assertEqual(snapshot(a.states[('pay-gift','vulnerable')],'gift')['gift_card']['balance'],-2000)
         self.assertEqual(snapshot(a.states[('pay-gift','fixed')],'gift')['gift_card']['balance'],4000)
 
-    def test_nine_labs_keep_all_cases_and_have_authored_context(self):
-        self.assertEqual(len(CATALOG),72);self.assertEqual(len({r['group'] for r in CATALOG}),9)
+    def test_thirteen_labs_keep_all_cases_and_have_authored_context(self):
+        self.assertEqual(len(CATALOG),96);self.assertEqual(len({r['group'] for r in CATALOG}),13)
         for r in CATALOG:
             for language in ('ar','en'):
                 self.assertGreater(len(r['lesson']['story'][language]),80,r['id'])

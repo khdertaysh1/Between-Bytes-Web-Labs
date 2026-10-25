@@ -102,7 +102,7 @@ class HttpTests(unittest.TestCase):
         try:
             a=build_opener(HTTPCookieProcessor(CookieJar()));b=build_opener(HTTPCookieProcessor(CookieJar()))
             for client in (a,b):client.open(base+'/rooms/session').read()
-            self.assertEqual(len(json.load(a.open(base+'/academy/catalog'))['cases']),72)
+            self.assertEqual(len(json.load(a.open(base+'/academy/catalog'))['cases']),96)
             def run(client,id,mode,data,origin=None):
                 req=Request(base+'/academy/run',data=urlencode({'case':id,'mode':mode,'input':json.dumps(data)}).encode())
                 if origin:req.add_header('Origin',origin)
