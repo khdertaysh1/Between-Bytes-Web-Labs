@@ -39,6 +39,10 @@ def response(academy,case,mode,result):
         payload = {'data': deepcopy(result['data'])}
         if status >= 400:
             payload['error'] = {'code': result.get('error_code', 'operation_rejected'), 'message': 'The requested resource or operation is not available under this policy.'}
+    elif case == 'code-hpp':
+        payload = {'data': deepcopy(result['data'])}
+        if status >= 400:
+            payload['error'] = {'code': result.get('error_code', 'invalid_query'), 'message': 'Ambiguous owner or unauthorized resource request.'}
     elif case.startswith('acl-'):
         if status>=400:payload={'error':{'code':'resource_not_found' if status==404 else 'forbidden','message':'Resource not found.' if status==404 else 'Your account does not have permission to perform this operation.'}}
         else:

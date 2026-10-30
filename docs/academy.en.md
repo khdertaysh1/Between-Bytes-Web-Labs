@@ -1,6 +1,6 @@
-# Lab guide · 0.11.0
+# Lab guide · 0.12.1
 
-Nine independent labs contain 72 open cases. There are no points or locked levels. Each case explains the feature, the missing check, a short experiment and how to interpret the result. Implementation details live in an expandable repair section.
+Thirteen independent labs contain 97 open cases. There are no points or locked levels. Each case explains the feature, the missing check, a short experiment and how to interpret the result. Implementation details live in an expandable repair section.
 
 | Lab | Six cases |
 |---|---|
@@ -8,8 +8,12 @@ Nine independent labs contain 72 open cases. There are no points or locked level
 | CSRF | Missing verification, empty token, cross-session token, unsafe origin exemption, state-changing GET, content-type gap |
 | CORS | Origin reflection, null origin, origin prefix, hostname suffix, ignored scheme, broad preflight and actual response |
 | Open Redirect | Absolute URL, protocol-relative URL, backslash normalization, decoding order, misleading host prefix, nested redirect |
+| Upload | Active extension, double extension, declared MIME, filename traversal, overwrite, active SVG policy |
+| Path traversal | Relative, encoding, double decoding, backslash, absolute path, prefix confusion |
+| Disclosure | Environment, Git, backup, listing, trace, secret in client configuration |
+| Recovery/sessions | Account binding, replay, expiry, logout, MFA, token purpose |
 
-Each row is a separate lab card, with six cases in its own navigation. The remaining five labs cover payment (16), XSS (12), access control (10), rate limits (7), and SQL/NoSQL/templates (3).
+Each row is a separate lab card, with six cases in its own navigation. Five other labs cover payment (16), XSS (12), access control (10), rate limits (7), and SQL/NoSQL/templates/HPP (4).
 
 ## First experiment
 
@@ -34,8 +38,12 @@ git pull --ff-only origin main
 python app.py --port 8002
 ```
 
-Open http://127.0.0.1:8002/ and verify version 0.11.0 with nine lab cards. The old UI is removed; `/foundations` redirects to the current interface.
+Open http://127.0.0.1:8002/ and verify version 0.12.1 with nine lab cards. The old UI is removed; `/foundations` redirects to the current interface.
 
 ## Hands-on workspace
 
-All 72 cases include editable typed fields, an HTTP request editor, replay/comparison, encoding tools and effect inspection. Companion browser practice adds real CSRF requests for all six CSRF cases and a real CORS origin-reflection exercise, separate from JSON-policy evidence. See the [workspace guide](studio.en.md).
+All 97 cases include editable typed fields, an HTTP request editor, replay/comparison, encoding tools and effect inspection. Companion browser practice adds real CSRF requests for all six CSRF cases and a real CORS origin-reflection exercise, separate from JSON-policy evidence. See the [workspace guide](studio.en.md).
+
+## HPP exercise
+
+The current total is 13 rooms/97 cases. Upload, traversal, disclosure and identity rooms each retain six cases; Code now has four. [Actual GET exercise, source and limits](hpp.en.md).

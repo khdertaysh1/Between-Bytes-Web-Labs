@@ -29,5 +29,5 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await p.locator('.lab-card[href="#/payment"]').click();await p.waitForFunction(()=>document.querySelectorAll('#case-navigation a').length===16);assert.equal(await p.locator('.case-map').getAttribute('open'),null);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);if(process.env.BB_SCREENSHOT_DIR)await p.screenshot({path:process.env.BB_SCREENSHOT_DIR+'/grouped-case-mobile.png',fullPage:true});
  await p.goto(base+'/#idor');await p.waitForURL('**/#/access/acl-read');await p.waitForFunction(()=>document.getElementById('room-meta').textContent.endsWith('acl-read'));
  assert.deepEqual(errors,[]);assert.ok(requests.every(url=>new URL(url).hostname==='127.0.0.1'));
- console.log('PASS: default home groups 96 cases into thirteen labs; real 200/409/422 responses; independent persisted readback; business/evidence separation; navigation, languages, mobile and legacy links');await b.close();
+ console.log('PASS: default home groups 97 cases into thirteen labs; real 200/409/422 responses; independent persisted readback; business/evidence separation; navigation, languages, mobile and legacy links');await b.close();
 })().catch(e=>{console.error(e);process.exit(1)});
