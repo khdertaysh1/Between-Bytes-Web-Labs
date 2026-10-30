@@ -66,7 +66,7 @@ class FullHTTPAudit(unittest.TestCase):
                 elif group=='traversal':expected=(200,200,403)
                 elif group=='disclosure':expected=(200,200,200 if id=='disclosure-apikey' else 404)
                 elif group=='authentication':expected=(200,200,403 if id=='authentication-mfa' else 401)
-                else:expected=(200,200,{'code-sqli':200,'code-nosql':422,'code-template':200,'code-redirect':403,'code-ssrf':403}[id])
+                else:expected=(200,200,{'code-hpp':400,'code-sqli':200,'code-nosql':422,'code-template':200,'code-redirect':403,'code-ssrf':403}[id])
                 self.assertEqual((weak,normal,fixed),expected)
                 if fixed>=400:
                     self.assertIn('error',fixed_body);self.assertIsInstance(fixed_body['error']['code'],str)
@@ -83,7 +83,7 @@ class FullHTTPAudit(unittest.TestCase):
                 if group=='xss':
                     self.assertIn('preview_url',fixed_body['data']);url=fixed_body['data']['preview_url']
                     r=self.client.open(self.base+url);document=r.read();r.close();self.assertEqual(r.code,200);self.assertIn("sandbox allow-scripts",r.headers['Content-Security-Policy']);self.assertNotIn('allow-same-origin',r.headers['Content-Security-Policy'])
-        self.assertEqual(len(seen),96)
+        self.assertEqual(len(seen),97)
 
     def test_missing_unknown_and_malformed_inputs_for_every_case(self):
         for case in CATALOG:

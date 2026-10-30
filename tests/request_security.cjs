@@ -4,8 +4,8 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  const b=await chromium.launch({headless:true,executablePath:process.env.BB_BROWSER_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
  const p=await b.newPage({viewport:{width:1440,height:1000}});const errors=[],requests=[];p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>requests.push(r.url()));const base='http://127.0.0.1:8000';
  await p.goto(base);await p.waitForFunction(()=>document.querySelectorAll('.lab-card').length===13);
- assert.equal(await p.locator('a[href="/foundations"]').count(),0);assert.ok((await p.locator('header').innerText()).includes('0.12.0'));
- const catalog=await p.evaluate(async()=> (await (await fetch('/academy/catalog')).json()).cases);assert.equal(catalog.length,96);
+ assert.equal(await p.locator('a[href="/foundations"]').count(),0);assert.ok((await p.locator('header').innerText()).includes('0.12.1'));
+ const catalog=await p.evaluate(async()=> (await (await fetch('/academy/catalog')).json()).cases);assert.equal(catalog.length,97);
  for(const name of ['index.html','ui.js','catalog.js','progression.js','course.js','new_lessons.js','challenges.js','rooms_ui.js','i18n.js','english.js','style.css'])assert.equal((await p.request.get(base+'/'+name)).status(),404,name);
  async function send(mode,input){await p.locator('#mode').selectOption(mode);await p.locator('#input').fill(JSON.stringify(input));await p.locator('#send').click();await p.waitForFunction(()=>!document.getElementById('send').disabled);assert.equal(await p.locator('#error').innerText(),'');}
  for(const group of ['ssrf','csrf','cors','redirect']){

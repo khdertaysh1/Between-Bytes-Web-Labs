@@ -1,3 +1,11 @@
+# v0.12.1 · Hands-on duplicate query parameters
+
+- Add code-hpp as the fourth Code case: actual GET preserves duplicate parameter order, exposes explicit first/last policy disagreement and compares a strict fixed singleton contract. Total: 13 rooms/97 cases.
+- Add HPP-specific progressive hints, GET-line editing, real method labels, replay/diff and ordered parsing evidence. The existing design and open progression remain.
+- Reject malformed/bounded queries, foreign owners, cross-origin requests and wrong methods; return 400 for ambiguous owners, 403 for unauthorized single owners, and no records on rejection.
+- Add behavioral/HTTP contracts and extend browser acceptance to GET editing, controls, evidence, localization and mobile. Exact case/version assertions increase to 97/0.12.1; no test or CI check is removed or skipped.
+- Update Arabic/English guides, source attribution and cardinality/ownership limits. No third-party target or real account is used.
+
 # v0.12.0 · Resource and identity labs
 
 - Add four independent six-case rooms: uploads, path traversal, disclosure, recovery/sessions. Total: 13 rooms, 96 cases.

@@ -145,6 +145,18 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Open the lab using 127.0.0.1"})
             try:parsed=urlsplit(self.path)
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            hpp = re.fullmatch(r'/academy/hpp/(vulnerable|fixed)', parsed.path)
+            if hpp:
+                academy = self.academy()
+                if academy is None:return self.reply(401, {'error': 'Start a classroom session'})
+                expected_origin = 'http://127.0.0.1:' + str(self.server.server_port)
+                if self.headers.get('Origin') not in (None, expected_origin) or self.headers.get('Sec-Fetch-Site') == 'cross-site':return self.reply(403, {'error': 'Cross-site requests rejected'})
+                try:
+                    result = academy.run('code-hpp', hpp[1], {'query_string': parsed.query})
+                    status, body, headers = academy_response(academy, 'code-hpp', hpp[1], result)
+                    return self.reply(status, body, headers=headers)
+                except (ValueError, UnicodeError) as error:
+                    return self.reply(400, {'error': {'code': 'invalid_query', 'message': str(error)[:200]}})
             if studio_handle(self,context,parsed,'GET'):return
             if parsed.path in {'/studio-target.js','/studio-target.css'}:
                 return self.reply(200,(TARGET_JS if parsed.path.endswith('.js') else TARGET_CSS).encode(),'text/javascript; charset=utf-8' if parsed.path.endswith('.js') else 'text/css; charset=utf-8')
@@ -154,7 +166,7 @@ def handler_for(labs):
                 if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.12.0','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.12.1','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
@@ -250,6 +262,8 @@ def handler_for(labs):
                 return self.reply(403, {"error": "Cross-site requests rejected"})
             try:request_path=urlsplit(self.path).path
             except ValueError:return self.reply(400,{'error':'Malformed request URL'})
+            if request_path.startswith('/academy/hpp/'):
+                return self.reply(405, {'error': {'code': 'method_not_allowed', 'message': 'Use GET'}}, headers={'Allow': 'GET'})
             if request_path in {'/academy/catalog','/academy/evidence','/academy/resource'} or request_path.startswith('/academy/preview/'):
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use GET for this resource'}},headers={'Allow':'GET'})
             api=re.fullmatch(r'/academy/api/(payment|access|rate|xss|code|ssrf|csrf|cors|redirect|upload|traversal|disclosure|authentication)/([a-z0-9-]+)/(vulnerable|fixed)',self.path)

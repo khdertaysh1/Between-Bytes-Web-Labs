@@ -1202,5 +1202,68 @@
         }
       ]
     }
+  },
+  {
+    "id": "code-hpp",
+    "group": "code",
+    "title": {
+      "ar": "تكرار المعامل واختلاف التفسير · HPP",
+      "en": "Duplicate parameters and parser disagreement · HPP"
+    },
+    "level": "intermediate",
+    "normal": {
+      "query_string": "owner=alice&tag=training"
+    },
+    "attack": {
+      "query_string": "owner=alice&owner=bob&tag=training"
+    },
+    "cause": {
+      "ar": "طبقة التحقق تعتمد أول owner، بينما خدمة المستندات تعتمد آخر owner من الاستعلام نفسه.",
+      "en": "Validation authorizes the first owner while document lookup uses the last owner from the same query."
+    },
+    "fix": {
+      "ar": "حدّد أن owner مفرد، وارفض تكراره بعد فك الترميز قبل البحث. مرّر الهوية المتحققة نفسها للخدمة، وطبّق صلاحيات المورد مستقلاً. تكرار tag المسموح ليس ثغرة بحد ذاته.",
+      "en": "Define owner as a singleton, reject duplicates after decoding before lookup, and pass the same validated identity downstream. Also enforce resource authorization. Repeated allowed tags alone are not a vulnerability."
+    },
+    "lesson": {
+      "story": {
+        "ar": "في Northstar Documents أنت alice وتبحث عن تقريرك. عدّل query_string بيدك ثم أرسل GET فعلياً. الواجهة تحافظ على تكرار المعامل وترتيبه بدلاً من تحويله إلى كائن يفقد التكرار. هدفك معرفة هل طبقة التحقق وخدمة المستندات تختاران المالك نفسه؛ تقارير bob وcarol بيانات وهمية داخل الخادم.",
+        "en": "In Northstar Documents you are Alice looking up your own report. Edit query_string and send an actual GET. The workspace preserves duplicate keys and order rather than collapsing them into an object. Determine whether validation and document lookup choose the same owner. Bob and Carol have synthetic private reports."
+      },
+      "interpretation": {
+        "ar": "ابدأ بالطلب السليم في المُصلحة: 200 وسجل alice. جرّب owner=bob وحده: 403 في النسختين. أضف owner ثانياً بعد alice وقارن validation_owner مع downstream_owner وrecords. الضعيفة قد تعيد تقرير bob بـ200؛ المُصلحة ترفض التكرار بـ400 ورمز ambiguous_owner دون إعادة أي مستند. اعكس الترتيب ثم جرّب تكرار tag فقط لتفهم الفرق بين غموض حقل الصلاحية ومجموعة قيم مسموحة.",
+        "en": "Start with the fixed control: HTTP 200 and Alice’s record. owner=bob alone returns 403 in both variants. Add a second owner after Alice and compare validation_owner, downstream_owner and records. Vulnerable may return Bob’s report with 200; fixed returns 400 ambiguous_owner with no document. Reverse the order, then repeat tag alone to distinguish an ambiguous authorization field from a permitted collection."
+      },
+      "bad_code": "pairs = parse_qsl(raw_query)\nauthorize(first_value(pairs, \"owner\"))\nreturn document_for(last_value(pairs, \"owner\"))",
+      "fixed_code": "owners = decoded_values(pairs, \"owner\")\nrequire(len(owners) == 1)  # 400 before lookup\nrequire(owners[0] == session.actor)  # 403\nreturn authorized_document_for(owners[0])",
+      "steps": [
+        {
+          "ar": "أرسل owner واحداً لحسابك، ثم جرّب حساباً آخر وحده وسجّل الفرق.",
+          "en": "Send your own owner once, then another owner once; record the difference."
+        },
+        {
+          "ar": "عدّل الاستعلام بإضافة owner ثانٍ، وجرّب عكس ترتيب القيم.",
+          "en": "Add a second owner and try reversing the value order."
+        },
+        {
+          "ar": "أعد الاستعلام نفسه في المُصلحة، ثم جرّب تكرار tag فقط وافحص الدليل.",
+          "en": "Replay the identical query against fixed, then repeat only tag and inspect evidence."
+        }
+      ],
+      "hints": [
+        {
+          "ar": "افحص قائمة parameters المرتبة. هل تظهر كل القيم أم قيمة واحدة فقط؟",
+          "en": "Inspect the ordered parameters. Are all values retained?"
+        },
+        {
+          "ar": "قارن أول owner بآخره، ثم اربط كل واحد بخطوة التحقق أو البحث.",
+          "en": "Compare the first and last owner, then map each to validation or lookup."
+        },
+        {
+          "ar": "ابدأ بـowner=alice ثم أضف owner=bob. اعكس الترتيب لتختبر فرضيتك؛ تكرار tag لا يغيّر المالك.",
+          "en": "Start with owner=alice and append owner=bob. Reverse them to test your hypothesis; repeating tag does not change ownership."
+        }
+      ]
+    }
   }
 ]

@@ -1,5 +1,6 @@
 """Bounded local scenarios; no external payment, mail or network transport."""
 from collections import defaultdict, deque
+from query_lab import execute as query_execute
 from commerce import execute as checkout_execute, provider_signature
 from request_security import execute as request_execute, GROUPS as REQUEST_GROUPS
 from resource_labs import execute as resource_execute, GROUPS as RESOURCE_GROUPS
@@ -81,7 +82,9 @@ class Academy:
             raise ValueError('Missing required fields: '+', '.join(sorted(required-set(data))))
         state = self.states.setdefault((case, mode), {})
         fixed = mode == 'fixed'
-        if CASES[case]['group'] in RESOURCE_GROUPS:
+        if case == 'code-hpp':
+            result = query_execute(fixed, data['query_string'])
+        elif CASES[case]['group'] in RESOURCE_GROUPS:
             result = resource_execute(case, CASES[case]['group'], fixed, data, state)
         elif CASES[case]['group'] in REQUEST_GROUPS:
             result = request_execute(case, CASES[case]['group'], fixed, data, state)
