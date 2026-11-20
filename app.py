@@ -154,7 +154,7 @@ def handler_for(labs):
                 if not any(row['id']==case and row['group']==group for row in ACADEMY_CATALOG):return self.reply(404,{'error':{'code':'route_not_found','message':'Unknown application route'}})
                 return self.reply(405,{'error':{'code':'method_not_allowed','message':'Use POST for this application endpoint'}},headers={'Allow':'POST'})
             if parsed.path == '/academy/catalog':
-                return self.reply(200, {'version':'0.12.0','cases':ACADEMY_CATALOG})
+                return self.reply(200, {'version':'0.12.2','cases':ACADEMY_CATALOG})
             if parsed.path in {'/academy/evidence','/academy/resource'}:
                 academy=self.academy()
                 if academy is None:return self.reply(401,{'error':'Start a classroom session'})
