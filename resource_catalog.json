@@ -1202,5 +1202,68 @@
         }
       ]
     }
+  },
+  {
+    "id": "code-token-signature",
+    "group": "code",
+    "title": {
+      "ar": "فك ترميز الرمز دون التحقق من توقيعه",
+      "en": "Decoding a token without verifying its signature"
+    },
+    "level": "intermediate",
+    "normal": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMDAwMDM2MDAsInJvbGUiOiJ2aWV3ZXIiLCJzdWIiOiJhbGljZSJ9.IVm7HFna3fvE_gHw-2ocRdWnITWdju7QpWCoVC3Ks1M"
+    },
+    "attack": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMDAwMDM2MDAsInJvbGUiOiJhZG1pbiIsInN1YiI6ImFsaWNlIn0.invalid-signature"
+    },
+    "cause": {
+      "ar": "التطبيق يقرأ الدور من حمولة Base64url دون التأكد من سلامة التوقيع. الترميز ليس إثبات هوية.",
+      "en": "The application reads the role from base64url claims without verifying integrity. Encoding is not authentication."
+    },
+    "fix": {
+      "ar": "قيّد الخوارزمية وتحقق من التوقيع والصلاحية قبل استخدام أي ادعاء. استخدم مكتبة موثوقة ومفاتيح سرية في الإنتاج؛ مفتاح المختبر معلن عمداً.",
+      "en": "Allowlist the algorithm and verify integrity and expiry before using claims. Use a vetted library and secret keys in production; the lab key is deliberately public."
+    },
+    "lesson": {
+      "story": {
+        "ar": "أنت alice في لوحة تقارير Northstar. الرمز السليم يمنح دور viewer. انسخه إلى أداة الترميز وافحص جزء الحمولة، ثم عدّل role إلى admin وأعد ترميز الحمولة مع إبقاء التوقيع القديم. جرّب الرمز بنفسك؛ لا توجد حسابات أو مفاتيح حقيقية هنا.",
+        "en": "You are Alice in the Northstar reporting panel. The normal token grants viewer access. Inspect its payload using the encoding tool, change role to admin and re-encode the payload while retaining the old signature. Submit your edited token; all accounts and keys are synthetic."
+      },
+      "interpretation": {
+        "ar": "قارن effective_role وadmin_panel وsignature_verified. قبول الضعيفة لدور admin مع توقيع غير صحيح يثبت خطأ التحقق المحلي؛ المُصلحة تعيد 401 دون دور أو صلاحية. الطلب السليم يجب أن يبقى 200. الساعة ومفتاح التوقيع ثابتان لأجل التعليم، ولا تحاكي التجربة نظام هوية إنتاجياً.",
+        "en": "Compare effective_role, admin_panel and signature_verified. Vulnerable accepting admin with invalid integrity demonstrates the local verification flaw; fixed returns 401 with no role or privilege. The valid control remains 200. Time and signing key are fixed fixtures, not production identity infrastructure."
+      },
+      "bad_code": "claims = decode_base64url(token.payload)\nrole = claims[\"role\"]",
+      "fixed_code": "require(algorithm == \"HS256\")\nrequire(verify_signature(token))\nrequire(expiry > trusted_time)\nrole = verified_claims[\"role\"]",
+      "steps": [
+        {
+          "ar": "افحص الرمز السليم وسجّل دور viewer في المُصلحة.",
+          "en": "Inspect the normal token and record viewer in fixed."
+        },
+        {
+          "ar": "عدّل الحمولة وأبق التوقيع القديم ثم أرسل الرمز إلى الضعيفة.",
+          "en": "Edit claims, retain the old signature and send to vulnerable."
+        },
+        {
+          "ar": "أعد الرمز نفسه إلى المُصلحة، وقارن الرفض والاستخدام السليم.",
+          "en": "Replay the same token to fixed and compare rejection and valid use."
+        }
+      ],
+      "hints": [
+        {
+          "ar": "أجزاء الرمز مفصولة بنقطتين؛ الجزء الأوسط يحتوي الادعاءات.",
+          "en": "The token has three dot-separated segments; the middle contains claims."
+        },
+        {
+          "ar": "Base64url يستخدم - و_ بدلاً من + و/؛ أضف padding عند الحاجة للفك.",
+          "en": "Base64url uses -/_ instead of +/; add padding as needed when decoding."
+        },
+        {
+          "ar": "غيّر role فقط وأبق التوقيع كما كان؛ هل يظل signature_verified صحيحاً؟",
+          "en": "Change only role and retain the signature. Does signature_verified stay true?"
+        }
+      ]
+    }
   }
 ]

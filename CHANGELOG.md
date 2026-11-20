@@ -1,3 +1,10 @@
+# Proposed 0.12.2 · 2026-11-21
+
+- Add one manual token-integrity exercise: real local HMAC, public fixture key/time, weak decoding versus fixed signature/algorithm/expiry checks. 13 rooms/97 cases on this main-based branch.
+- Enable authored progressive hints; document missing publication URL and pending HPP PR rather than claiming deployment lag.
+- Add four behavioral contracts; retain all existing checks. Exact count/version assertions change for the additional case; no CI weakening.
+- Existing HPP PR #3 remains untouched; combining proposals later needs count/version reconciliation (98 cases).
+
 # v0.12.0 · Resource and identity labs
 
 - Add four independent six-case rooms: uploads, path traversal, disclosure, recovery/sessions. Total: 13 rooms, 96 cases.
