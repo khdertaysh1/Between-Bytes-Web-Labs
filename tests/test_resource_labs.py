@@ -9,8 +9,8 @@ class ResourceLabsTests(TestCase):
     def test_catalog_has_four_separate_six_case_labs_with_bilingual_lessons(self):
         for group in GROUPS:
             rows = [r for r in CATALOG if r['group'] == group]
-            self.assertEqual(len(rows), 6)
-            self.assertEqual(len({r['id'] for r in rows}), 6)
+            self.assertEqual(len(rows), 7 if group == 'upload' else 6)
+            self.assertEqual(len({r['id'] for r in rows}), 7 if group == 'upload' else 6)
             for r in rows:
                 self.assertEqual(len(r['lesson']['steps']), 3)
                 for key in ('story', 'interpretation'):

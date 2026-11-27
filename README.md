@@ -1,8 +1,8 @@
-# Between Bytes Web Labs · 0.12.0
+# Between Bytes Web Labs · 0.12.3
 
 مختبرات لتعلّم ثغرات تطبيقات الويب بالعربية والإنكليزية. اقرأ كيف تعمل الميزة، عدّل الطلب، افحص الأثر، ثم قارن النسخة الضعيفة بالمُصلحة. جميع الحالات مفتوحة، بلا نقاط أو شروط انتقال.
 
-واجهة واحدة تجمع **13 مختبراً و96 حالة**. أُزيلت الواجهة القديمة بالكامل؛ تعيد الروابط القديمة المدعومة فتح الحالة المناسبة في الواجهة الحالية.
+واجهة واحدة تجمع **13 مختبراً و97 حالة**. أُزيلت الواجهة القديمة بالكامل؛ تعيد الروابط القديمة المدعومة فتح الحالة المناسبة في الواجهة الحالية.
 
 | المختبر / Lab | الحالات / Cases |
 |---|---:|
@@ -15,7 +15,7 @@
 | CSRF | 6 |
 | CORS | 6 |
 | Open Redirect | 6 |
-| رفع الملفات / File uploads | 6 |
+| رفع الملفات / File uploads | 7 |
 | تجاوز المسارات / Path traversal | 6 |
 | كشف المعلومات / Information disclosure | 6 |
 | الاستعادة والجلسات / Recovery and sessions | 6 |
@@ -26,7 +26,7 @@ SSRF وCSRF وCORS وOpen Redirect **مختبرات مستقلة**؛ لكل من
 
 ## مساحة العمل اليدوي الجديدة
 
-داخل **كل حالة من الحالات الـ96**، افتح «مساحة العمل اليدوي». الشكل والشرح السابقان محفوظان، وأضيفت تبويبات:
+داخل **كل حالة من الحالات الـ97**، افتح «مساحة العمل اليدوي». الشكل والشرح السابقان محفوظان، وأضيفت تبويبات:
 
 - **التطبيق:** عدّل الحقول وأنواعها، أرسلها أو احذفها، وجرّب الطلب بنفسك.
 - **الطلبات:** راجع طلبات POST المرسلة من المحرر، حمّل طلباً سابقاً، أعد إرساله، أو حدد طلبين لمقارنة المدخلات والاستجابات. الإعادة قد تغيّر حالة الجولة.
@@ -48,7 +48,7 @@ cd Between-Bytes-Web-Labs
 python app.py --port 8002
 ```
 
-افتح **http://127.0.0.1:8002/**. ستجد رقم الإصدار **0.12.0** أعلى الصفحة.
+افتح **http://127.0.0.1:8002/**. ستجد رقم الإصدار **0.12.3** أعلى الصفحة.
 
 للتحديث، أوقف الخادم بـ **Ctrl+C** ثم نفّذ داخل مجلد المستودع:
 
@@ -106,3 +106,8 @@ node tests/payloads.cjs
 Updates are proposed on branches and PRs for owner review. The `Lab quality` workflow runs Python 3.10/3.13 checks, all browser groups and three regression-sensitivity experiments, then reports `quality-gate`. Dependencies/actions are pinned and CI has read-only repository permissions. Node remains development-only.
 
 **Owner activation required:** a workflow alone does not protect main. Branch protection must require `quality-gate` and PRs; the connected integration cannot administer this setting. See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact settings/REST body and the single-owner review limitation. [الشرح بالعربية](docs/quality.ar.md). Scheduled development tasks prepare PRs and do not merge them automatically.
+
+[تمرين حصة الرفع بالعربية](docs/upload-quota.ar.md) · [Upload quota exercise](docs/upload-quota.en.md)
+
+## Publication review · 2026-11-28
+No published URL is documented in README, deployment workflows or repository homepage; has_pages is false. No public academy site was opened or guessed, so deployed counts and deployment lag remain unverified. Main has 96 cases. Pending HPP #3 and token #4 are preserved; this independent proposal has 97. Combining all three requires count 99 and review of count/version conflicts. Local UI, rather than an unverified deployment, informed the case-specific hint improvement.

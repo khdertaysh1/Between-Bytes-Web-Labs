@@ -3,6 +3,8 @@
 PNG:/HTML: are explicit format fixtures, not production file validators.
 The SVG policy rejects active syntax; it is not a reusable SVG sanitizer.
 """
+import base64
+import binascii
 import posixpath
 from copy import deepcopy
 from urllib.parse import unquote
@@ -31,6 +33,7 @@ def execute(case, group, fixed, d, state):
 
 
 def upload(case, fixed, d, state):
+    if case == 'upload-decoded-size': return decoded_upload(fixed, d, state)
     name = string(d, 'filename'); mime = string(d, 'content_type'); content = string(d, 'content')
     files = state.setdefault('files', {'bob.png': {'owner': 'bob', 'content': 'PNG:bob-original'}})
     suffix = name.rsplit('.', 1)[-1].lower()
@@ -151,3 +154,24 @@ def authentication(case, fixed, d, state):
                         'content': 'DEMO_PRIVATE_PROFILE' if session_case else 'Password updated in synthetic account ledger',
                         'model': 'closed identity ledger; no real credentials, signing or email'},
                   impact=not valid and not fixed, legitimate=fixed and valid)
+
+
+def decoded_upload(fixed, d, state):
+    """Small real Base64/quota exercise; no file execution or image decoding."""
+    name = string(d, 'filename'); mime = string(d, 'content_type'); encoded = string(d, 'content')
+    if name != 'sample.bin' or mime != 'application/octet-stream':
+        return result(415, {'accepted': False}, code='unsupported_fixture_metadata')
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error):
+        return result(422, {'accepted': False}, code='invalid_base64')
+    if not raw:
+        return result(422, {'accepted': False}, code='empty_file')
+    data = {'decoded_bytes': len(raw), 'encoded_characters': len(encoded), 'quota_bytes': 32,
+            'model': 'real Base64 decoding; synthetic 32-byte quota; memory only; not image validation'}
+    if fixed and len(raw) > 32:
+        return result(413, {**data, 'accepted': False}, protected=True, code='decoded_file_too_large')
+    state['revision'] = state.get('revision', 0) + 1
+    state['stored_bytes'] = len(raw)
+    return result(201, {**data, 'accepted': True, 'revision': state['revision']},
+                  impact=not fixed and len(raw) > 32, legitimate=fixed and len(raw) <= 32)

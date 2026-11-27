@@ -1202,5 +1202,72 @@
         }
       ]
     }
+  },
+  {
+    "id": "upload-decoded-size",
+    "group": "upload",
+    "level": "intermediate",
+    "title": {
+      "ar": "حجم الملف بعد فك الترميز",
+      "en": "Decoded upload size"
+    },
+    "normal": {
+      "filename": "sample.bin",
+      "content_type": "application/octet-stream",
+      "content": "QUFBQUFBQUE="
+    },
+    "attack": {
+      "filename": "sample.bin",
+      "content_type": "application/octet-stream",
+      "content": "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB"
+    },
+    "cause": {
+      "ar": "حد جسم HTTP لا يضمن تطبيق حصة الملف داخل التطبيق.",
+      "en": "An HTTP body limit does not enforce the application file quota."
+    },
+    "fix": {
+      "ar": "فك الترميز ضمن حد مسبق ثم قارن عدد البايتات بالحصة قبل الحفظ. حد HTTP يبقى مطلوباً لحماية الذاكرة.",
+      "en": "Bound encoded input, decode, then enforce the byte quota before storage. Keep an HTTP limit to protect memory."
+    },
+    "lesson": {
+      "story": {
+        "ar": "خدمة Northstar تقبل عينة ثنائية باسم sample.bin عبر Base64. حصة الملف 32 بايتاً، بينما يسمح الطلب بنص أكبر. المطلوب إثبات غياب التحقق من الحصة دون إرسال ملف ضخم أو لمس القرص.",
+        "en": "Northstar accepts sample.bin as Base64 with a 32-byte file quota. The request permits larger text. Prove the missing quota check without large files or disk writes."
+      },
+      "interpretation": {
+        "ar": "قارن decoded_bytes وquota_bytes وaccepted. الضعيفة تحفظ 33 بايتاً وتعيد 201؛ المصلحة ترفض بـ413 ولا تزيد revision. جرّب 32 بايتاً في المصلحة: يجب قبولها. هذه تجربة حصة وفك ترميز حقيقي، وليست فك ضغط أو تحققاً من الصور.",
+        "en": "Compare decoded_bytes, quota_bytes and accepted. Vulnerable stores 33 bytes with 201; fixed returns 413 without increasing revision. Test exactly 32 bytes: fixed must accept. This is real decoding with a synthetic quota, not decompression or image validation."
+      },
+      "bad_code": "decoded = decode_bounded(body.content); store(decoded)",
+      "fixed_code": "decoded = decode_bounded(body.content); require(len(decoded) <= 32); store(decoded)",
+      "steps": [
+        {
+          "ar": "أرسل الطلب السليم في المصلحة وسجل طول النص وطول البيانات بعد فكها.",
+          "en": "Send the fixed control; record encoded and decoded lengths."
+        },
+        {
+          "ar": "اكتب 33 حرف A في أداة Base64 وانقل الناتج إلى content. أرسله في الضعيفة ثم المصلحة.",
+          "en": "Encode 33 A characters with the Base64 tool and put the result in content. Send to vulnerable then fixed."
+        },
+        {
+          "ar": "اختبر 32 و34 بايتاً ثم Base64 غير صالح. نزّل الدليل وقارن الحالات؛ مشاهدة المقارنة وحدها لا تكمل التمرين.",
+          "en": "Test 32 and 34 bytes, then invalid Base64. Export evidence and compare outcomes; viewing the comparison alone never completes the exercise."
+        }
+      ],
+      "hints": [
+        {
+          "ar": "المقياس هو حجم البيانات الثنائية، لا عدد حروف النص المنقول.",
+          "en": "Measure decoded bytes, not transport text characters."
+        },
+        {
+          "ar": "اكتب A مكررة 33 مرة ثم استخدم Base64؛ لا تستخدم ملفاً حقيقياً.",
+          "en": "Encode 33 A characters with Base64; no real file is needed."
+        },
+        {
+          "ar": "الدليل يحتاج 201 في الضعيفة و413 لنفس المدخل في المصلحة، مع طلب سليم مقبول بعد الإصلاح.",
+          "en": "Collect vulnerable 201 and fixed 413 for identical input, plus an accepted fixed control."
+        }
+      ]
+    }
   }
 ]
