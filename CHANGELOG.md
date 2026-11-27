@@ -1,3 +1,9 @@
+# 0.12.3 — proposed 2026-11-28
+
+- Add decoded upload-quota exercise (97 cases), real bounded Base64 decoding, 32-byte boundary, unchanged state on rejection, manual evidence and authored progressive hints.
+- Preserve all styles and runtime dependencies. Publication remains unverified; pending HPP/token proposals are separate.
+- Original MIT code and prose; no upstream snippets copied.
+
 # v0.12.0 · Resource and identity labs
 
 - Add four independent six-case rooms: uploads, path traversal, disclosure, recovery/sessions. Total: 13 rooms, 96 cases.

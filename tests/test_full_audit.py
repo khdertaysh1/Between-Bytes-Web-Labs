@@ -62,7 +62,7 @@ class FullHTTPAudit(unittest.TestCase):
                 elif group in {'ssrf','redirect'}:expected=(200,200,403)
                 elif group=='csrf':expected=(200,200,405 if id=='csrf-get' else 415 if id=='csrf-content-type' else 403)
                 elif group=='cors':expected=(200,200,200)
-                elif group=='upload':expected=(201,201,403 if id in {'upload-path','upload-overwrite'} else 415)
+                elif group=='upload':expected=(201,201,403 if id in {'upload-path','upload-overwrite'} else 413 if id=='upload-decoded-size' else 415)
                 elif group=='traversal':expected=(200,200,403)
                 elif group=='disclosure':expected=(200,200,200 if id=='disclosure-apikey' else 404)
                 elif group=='authentication':expected=(200,200,403 if id=='authentication-mfa' else 401)
@@ -83,7 +83,7 @@ class FullHTTPAudit(unittest.TestCase):
                 if group=='xss':
                     self.assertIn('preview_url',fixed_body['data']);url=fixed_body['data']['preview_url']
                     r=self.client.open(self.base+url);document=r.read();r.close();self.assertEqual(r.code,200);self.assertIn("sandbox allow-scripts",r.headers['Content-Security-Policy']);self.assertNotIn('allow-same-origin',r.headers['Content-Security-Policy'])
-        self.assertEqual(len(seen),96)
+        self.assertEqual(len(seen),97)
 
     def test_missing_unknown_and_malformed_inputs_for_every_case(self):
         for case in CATALOG:
